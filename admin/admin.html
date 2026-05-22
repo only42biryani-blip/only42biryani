@@ -1,0 +1,111 @@
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+<script>
+
+const SUPABASE_URL =
+  "https://pubtyadwysqdozzhgzyz.supabase.co";
+
+const SUPABASE_KEY =
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1YnR5YWR3eXNxZG96emhnenl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MDgxNDEsImV4cCI6MjA5NDk4NDE0MX0.uj4V8SXb5sCouvVRq6E8GZNsvefSg0QpbsARqVQAFTk";
+
+const supabaseClient =
+  supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
+
+let totalInventory = 42;
+let currentInventory = 17;
+
+async function loadInventory(){
+
+  const { data, error } =
+    await supabaseClient
+      .from("inventory")
+      .select("*")
+      .eq("id", 1)
+      .single();
+
+  if(error){
+
+    console.log(error);
+    return;
+
+  }
+
+  currentInventory = data.remaining;
+
+  updateInventoryUI();
+
+}
+
+function updateInventoryUI(){
+
+  document.getElementById("inventoryCount").innerHTML =
+    currentInventory + " / " + totalInventory;
+
+}
+
+async function saveInventory(){
+
+  const { error } =
+    await supabaseClient
+      .from("inventory")
+      .update({
+        remaining: currentInventory
+      })
+      .eq("id", 1);
+
+  if(error){
+
+    console.log(error);
+
+  }
+
+  updateInventoryUI();
+
+}
+
+function increaseInventory(){
+
+  if(currentInventory < totalInventory){
+
+    currentInventory++;
+
+    saveInventory();
+
+  }
+
+}
+
+function decreaseInventory(){
+
+  if(currentInventory > 0){
+
+    currentInventory--;
+
+    saveInventory();
+
+  }
+
+}
+
+function soldOut(){
+
+  currentInventory = 0;
+
+  saveInventory();
+
+}
+
+function resetInventory(){
+
+  currentInventory = 42;
+
+  saveInventory();
+
+}
+
+loadInventory();
+
+</script>
