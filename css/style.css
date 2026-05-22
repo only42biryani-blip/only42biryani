@@ -948,6 +948,415 @@ color:transparent;
 
 }
 
+/* =========================
+   INVENTORY PROGRESS BAR
+========================= */
+
+.inventory-progress{
+
+  width:100%;
+
+  height:10px;
+
+  background:#181818;
+
+  border-radius:999px;
+
+  overflow:hidden;
+
+  margin:22px 0;
+
+  border:1px solid rgba(255,255,255,0.05);
+
+}
+
+.inventory-progress-fill{
+
+  width:40%;
+
+  height:100%;
+
+  border-radius:999px;
+
+  transition:1s ease;
+
+  box-shadow:
+    0 0 25px currentColor;
+
+  position:relative;
+
+  overflow:hidden;
+
+}
+
+.inventory-progress-fill::after{
+
+  content:"";
+
+  position:absolute;
+
+  top:0;
+
+  left:-100%;
+
+  width:100%;
+
+  height:100%;
+
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      rgba(255,255,255,0.45),
+      transparent
+    );
+
+  animation:progressShine 2.4s infinite;
+
+}
+
+@keyframes progressShine{
+
+  0%{
+    left:-100%;
+  }
+
+  100%{
+    left:100%;
+  }
+
+}
+
+/* =========================
+   LOW INVENTORY PULSE
+========================= */
+
+.low-inventory{
+
+  animation:lowPulse 1s infinite alternate;
+
+}
+
+@keyframes lowPulse{
+
+  from{
+    transform:scale(1);
+  }
+
+  to{
+    transform:scale(1.04);
+  }
+
+}
+
+/* =========================
+   REAL STEAM
+========================= */
+
+.steam{
+
+  position:absolute;
+
+  width:280px;
+
+  opacity:0.16;
+
+  pointer-events:none;
+
+  z-index:5;
+
+  filter:blur(2px);
+
+}
+
+.steam-1{
+
+  top:-50px;
+
+  left:10%;
+
+  animation:steamFloat1 8s linear infinite;
+
+}
+
+.steam-2{
+
+  top:-20px;
+
+  right:0;
+
+  animation:steamFloat2 10s linear infinite;
+
+}
+
+@keyframes steamFloat1{
+
+  0%{
+    transform:
+      translateY(0)
+      scale(1);
+    opacity:0;
+  }
+
+  20%{
+    opacity:0.16;
+  }
+
+  100%{
+    transform:
+      translateY(-140px)
+      scale(1.5);
+    opacity:0;
+  }
+
+}
+
+@keyframes steamFloat2{
+
+  0%{
+    transform:
+      translateY(0)
+      scale(1);
+    opacity:0;
+  }
+
+  25%{
+    opacity:0.14;
+  }
+
+  100%{
+    transform:
+      translateY(-160px)
+      scale(1.6);
+    opacity:0;
+  }
+
+}
+
+/* =========================
+   LOADING SCREEN
+========================= */
+
+.loader{
+
+  position:fixed;
+
+  inset:0;
+
+  background:#050505;
+
+  z-index:999999;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  animation:loaderHide 1.8s ease forwards;
+
+}
+
+.loader-content{
+
+  text-align:center;
+
+}
+
+.loader h1{
+
+  font-size:82px;
+
+  font-family:'Space Grotesk',sans-serif;
+
+  letter-spacing:-4px;
+
+  margin-bottom:18px;
+
+}
+
+.loader h1 span{
+
+  color:var(--accent);
+
+  text-shadow:
+    0 0 24px rgba(212,255,63,0.8);
+
+}
+
+.loader p{
+
+  color:var(--muted);
+
+  letter-spacing:5px;
+
+  margin-bottom:28px;
+
+}
+
+.loader-bar{
+
+  width:260px;
+
+  height:5px;
+
+  background:#181818;
+
+  border-radius:999px;
+
+  overflow:hidden;
+
+}
+
+.loader-fill{
+
+  width:0%;
+
+  height:100%;
+
+  background:
+    linear-gradient(
+      90deg,
+      var(--accent),
+      var(--fire)
+    );
+
+  animation:loaderFill 1.4s ease forwards;
+
+}
+
+@keyframes loaderFill{
+
+  from{
+    width:0%;
+  }
+
+  to{
+    width:100%;
+  }
+
+}
+
+@keyframes loaderHide{
+
+  0%,85%{
+    opacity:1;
+    visibility:visible;
+  }
+
+  100%{
+    opacity:0;
+    visibility:hidden;
+  }
+
+}
+
+/* =========================
+   CURSOR GLOW
+========================= */
+
+.cursor-glow{
+
+  position:fixed;
+
+  width:260px;
+
+  height:260px;
+
+  background:
+    radial-gradient(
+      circle,
+      rgba(212,255,63,0.10),
+      transparent 70%
+    );
+
+  pointer-events:none;
+
+  border-radius:50%;
+
+  transform:translate(-50%,-50%);
+
+  z-index:999;
+
+  mix-blend-mode:screen;
+
+}
+
+/* =========================
+   SEO SUBLINE
+========================= */
+
+.seo-subline{
+
+  margin-top:20px;
+
+  margin-bottom:28px;
+
+  color:var(--fire);
+
+  font-size:16px;
+
+  letter-spacing:5px;
+
+  font-weight:700;
+
+}
+
+/* =========================
+   HUGE BACKGROUND WORD
+========================= */
+
+.bg-word{
+
+  position:absolute;
+
+  top:50%;
+
+  left:50%;
+
+  transform:
+    translate(-50%,-50%);
+
+  font-size:260px;
+
+  font-family:'Space Grotesk',sans-serif;
+
+  font-weight:700;
+
+  letter-spacing:-14px;
+
+  opacity:0.03;
+
+  pointer-events:none;
+
+  -webkit-user-select:none;
+   user-select:none;
+  z-index:0;
+
+  text-transform:uppercase;
+
+}
+
+/* =========================
+   MOBILE OPTIMIZATION
+========================= */
+
+@media(max-width:640px){
+
+  .cursor-glow{
+    display:none;
+  }
+
+  .steam{
+    width:160px;
+  }
+
+  .bg-word{
+    font-size:120px;
+  }
+
+}
+
 @media(max-width:640px){
 
   .closing-section h2{
