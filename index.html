@@ -138,6 +138,31 @@ href="images/favicon.png">
 
 <body>
 
+
+  <div class="loader">
+
+  <div class="loader-content">
+
+    <h1>
+      ONLY<span>42</span>
+    </h1>
+
+    <p>
+      PREPARING TODAY'S DEG
+    </p>
+
+    <div class="loader-bar">
+
+      <div class="loader-fill"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<div class="cursor-glow"></div>
+
 <div class="cursor-glow"></div>
 
 <header>
@@ -206,35 +231,44 @@ href="images/favicon.png">
         <small>
           TODAY'S INVENTORY
         </small>
-
+      
         <h2 id="inventoryCount">
           17 / 42
         </h2>
-
+      
         <p id="inventoryText">
           LEFT TODAY
         </p>
-
+      
+        <div class="inventory-progress">
+      
+          <div
+            class="inventory-progress-fill"
+            id="inventoryProgressFill">
+          </div>
+      
+        </div>
+      
         <span id="dropStatus">
-
+      
           <span class="live-dot"></span>
-
+      
           DROP STATUS — LIVE
-
+      
         </span>
-
+      
         <div class="inventory-note">
-
+      
           Inventory updates are currently
           synced manually based on
           live kitchen preparation,
           Swiggy orders and Zomato orders.
-
+      
           Real-time automated inventory
           sync is coming in future updates.
-
+      
         </div>
-
+      
       </div>
 
       <div class="kitchen-status">
