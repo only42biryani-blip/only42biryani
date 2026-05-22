@@ -12,6 +12,8 @@ const supabaseClient =
 
 let totalInventory = 42;
 
+/* LOAD INVENTORY */
+
 async function loadInventory(){
 
   const { data, error } =
@@ -24,33 +26,57 @@ async function loadInventory(){
   if(error){
 
     console.log(error);
+
     return;
 
   }
 
-  updateInventoryUI(data.remaining);
+  updateInventoryUI(
+    data.remaining
+  );
 
 }
+
+/* UPDATE UI */
 
 function updateInventoryUI(currentInventory){
 
   const inventoryCount =
-    document.getElementById("inventoryCount");
+    document.getElementById(
+      "inventoryCount"
+    );
 
   const inventoryText =
-    document.getElementById("inventoryText");
+    document.getElementById(
+      "inventoryText"
+    );
 
   const dropStatus =
-    document.getElementById("dropStatus");
+    document.getElementById(
+      "dropStatus"
+    );
 
   const floatingTag =
-    document.querySelector(".floating-tag");
+    document.querySelector(
+      ".floating-tag"
+    );
 
   const inventoryBox =
-    document.querySelector(".inventory-box");
+    document.querySelector(
+      ".inventory-box"
+    );
+
+  const progressFill =
+    document.getElementById(
+      "inventoryProgressFill"
+    );
+
+  /* MAIN INVENTORY */
 
   inventoryCount.innerHTML =
     currentInventory + " / " + totalInventory;
+
+  /* FLOATING TAG */
 
   if(floatingTag){
 
@@ -59,19 +85,76 @@ function updateInventoryUI(currentInventory){
 
   }
 
-  if(currentInventory <= 10){
+  /* PROGRESS BAR */
+
+  let percentage =
+    (currentInventory / totalInventory) * 100;
+
+  progressFill.style.width =
+    percentage + "%";
+
+  progressFill.classList.remove(
+    "low-inventory"
+  );
+
+  inventoryBox.classList.remove(
+    "inventory-danger"
+  );
+
+  /* HIGH INVENTORY */
+
+  if(currentInventory >= 20){
+
+    progressFill.style.background =
+      "#D4FF3F";
+
+    progressFill.style.color =
+      "#D4FF3F";
+
+    inventoryCount.style.color =
+      "#D4FF3F";
+
+  }
+
+  /* MEDIUM INVENTORY */
+
+  else if(currentInventory >= 8){
+
+    progressFill.style.background =
+      "#ff7b00";
+
+    progressFill.style.color =
+      "#ff7b00";
+
+    inventoryCount.style.color =
+      "#ff7b00";
+
+  }
+
+  /* LOW INVENTORY */
+
+  else if(currentInventory >= 1){
+
+    progressFill.style.background =
+      "#ff3b30";
+
+    progressFill.style.color =
+      "#ff3b30";
+
+    inventoryCount.style.color =
+      "#ff3b30";
+
+    progressFill.classList.add(
+      "low-inventory"
+    );
 
     inventoryBox.classList.add(
       "inventory-danger"
     );
 
-  }else{
-
-    inventoryBox.classList.remove(
-      "inventory-danger"
-    );
-
   }
+
+  /* SOLD OUT */
 
   if(currentInventory <= 0){
 
@@ -88,7 +171,20 @@ function updateInventoryUI(currentInventory){
       "sold-out-mode"
     );
 
-  }else{
+    progressFill.style.width =
+      "100%";
+
+    progressFill.style.background =
+      "#ff0000";
+
+    inventoryCount.style.color =
+      "#ff3b30";
+
+  }
+
+  /* LIVE MODE */
+
+  else{
 
     inventoryText.innerHTML =
       "LEFT TODAY";
@@ -107,6 +203,70 @@ function updateInventoryUI(currentInventory){
 
 }
 
+/* AUTO REFRESH */
+
 loadInventory();
+
+setInterval(
+  loadInventory,
+  3000
+);
+
+/* SCROLL REVEAL */
+
+const revealElements =
+  document.querySelectorAll(
+    ".manifesto-card, .product-card, .statement-section"
+  );
+
+window.addEventListener(
+  "scroll",
+  () => {
+
+    revealElements.forEach(
+      (el) => {
+
+        const top =
+          el.getBoundingClientRect().top;
+
+        if(
+          top < window.innerHeight - 100
+        ){
+
+          el.classList.add(
+            "active"
+          );
+
+        }
+
+      }
+    );
+
+  }
+);
+
+/* CURSOR GLOW */
+
+const glow =
+  document.querySelector(
+    ".cursor-glow"
+  );
+
+document.addEventListener(
+  "mousemove",
+  e => {
+
+    if(glow){
+
+      glow.style.left =
+        e.clientX + "px";
+
+      glow.style.top =
+        e.clientY + "px";
+
+    }
+
+  }
+);
 
 setInterval(loadInventory, 3000);
