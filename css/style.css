@@ -719,6 +719,18 @@ section{
   outline:none;
 }
 
+.waitlist-error{
+  color:#ff3b30;
+  font-size:13px;
+  margin:-4px 0 0;
+  min-height:16px;
+  display:none;
+}
+
+.waitlist-error.active{
+  display:block;
+}
+
 .waitlist-form button{
   width:100%;
   border:none;

@@ -351,9 +351,46 @@ if(waitlistForm){
           "waitlistEmail"
         );
 
+      const errorEl =
+        document.getElementById(
+          "waitlistError"
+        );
+
       const name = nameInput.value.trim();
-      const phone = phoneInput.value.trim();
-      const email = emailInput.value.trim();
+      const phone = phoneInput.value.trim().replace(/[\s\-]/g, "");
+      const email = emailInput.value.trim().toLowerCase();
+
+      const phonePattern = /^(\+91)?[6-9]\d{9}$/;
+      const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+      errorEl.classList.remove("active");
+      errorEl.innerText = "";
+
+      if(!phonePattern.test(phone)){
+
+        errorEl.innerText =
+          "Enter a valid 10-digit mobile number.";
+
+        errorEl.classList.add("active");
+
+        phoneInput.focus();
+
+        return;
+
+      }
+
+      if(!emailPattern.test(email)){
+
+        errorEl.innerText =
+          "Enter a valid email address.";
+
+        errorEl.classList.add("active");
+
+        emailInput.focus();
+
+        return;
+
+      }
 
       try {
 

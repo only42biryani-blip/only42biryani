@@ -492,8 +492,9 @@ href="css/style.css">
       <input
         type="tel"
         id="waitlistPhone"
-        placeholder="WhatsApp number"
-        pattern="[0-9+ ]{7,15}"
+        placeholder="WhatsApp number (10-digit)"
+        pattern="(\+91[\-\s]?)?[6-9][0-9]{9}"
+        maxlength="14"
         required
       >
 
@@ -503,6 +504,8 @@ href="css/style.css">
         placeholder="Enter your email address"
         required
       >
+
+      <p class="waitlist-error" id="waitlistError"></p>
 
       <button type="submit">
         REQUEST ACCESS
