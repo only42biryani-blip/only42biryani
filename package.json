@@ -1,0 +1,16 @@
+{
+  "name": "only42biryani",
+  "version": "1.0.0",
+  "description": "Premium scarcity-based chicken biryani brand website",
+  "main": "index.html",
+  "scripts": {
+    "dev": "npx -y browser-sync start --server --files \"*.html, css/*.css, js/*.js\""
+  },
+  "keywords": [
+    "biryani",
+    "scarcity",
+    "premium"
+  ],
+  "author": "Only42Biryani Team",
+  "license": "ISC"
+}

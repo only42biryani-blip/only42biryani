@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Only42Biryani | Admin Dashboard</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg: #050505;
+      --card: #121212;
+      --text: #F5F1E8;
+      --muted: #8A8A8A;
+      --accent: #D4FF3F;
+      --fire: #FF6B00;
+      --border: #232323;
+      --danger: #ff3b30;
+      --success: #28cd41;
+      --glass: rgba(18, 18, 18, 0.75);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+
+    /* Background Ambient Gradients */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: 
+        radial-gradient(circle at top right, rgba(212, 255, 63, 0.05), transparent 40%),
+        radial-gradient(circle at bottom left, rgba(255, 107, 0, 0.05), transparent 35%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      padding: 24px;
+      position: relative;
+    }
+
+    /* Glass Card Style */
+    .glass-card {
+      background: var(--glass);
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      padding: 40px 32px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      width: 100%;
+    }
+
+    /* Brand Header */
+    .brand-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .brand-header h1 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 28px;
+      letter-spacing: 1px;
+      font-weight: 700;
+    }
+
+    .brand-header h1 span {
+      color: var(--accent);
+    }
+
+    .brand-header p {
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 3px;
+      margin-top: 6px;
+      text-transform: uppercase;
+    }
+
+    /* Lock Screen Layout */
+    #lockScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .pin-input-container {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 32px;
+      justify-content: center;
+    }
+
+    .pin-dot {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      transition: all 0.2s ease;
+    }
+
+    .pin-dot.active {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 0 12px var(--accent);
+    }
+
+    .pin-keyboard {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      width: 100%;
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .key-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      color: var(--text);
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 24px;
+      font-weight: 500;
+      height: 64px;
+      border-radius: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+      user-select: none;
+    }
+
+    .key-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .key-btn:active {
+      transform: scale(0.95);
+      background: rgba(212, 255, 63, 0.15);
+      color: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .key-btn.backspace {
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    .key-btn.clear {
+      font-size: 14px;
+      color: var(--danger);
+    }
+
+    /* Dashboard Layout (Hidden by default) */
+    #dashboard {
+      display: none;
+      opacity: 0;
+      transform: translateY(15px);
+    }
+
+    #dashboard.show {
+      display: block;
+      animation: revealDash 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @keyframes revealDash {
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-panel {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+
+    .status-panel small {
+      color: var(--muted);
+      letter-spacing: 2px;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    .status-panel h2 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 64px;
+      letter-spacing: -2px;
+      margin: 8px 0;
+      color: var(--accent);
+      transition: color 0.3s ease;
+    }
+
+    .status-panel p {
+      font-size: 13px;
+      letter-spacing: 3px;
+      margin-bottom: 16px;
+    }
+
+    /* Progress bar */
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #181818;
+      border-radius: 99px;
+      overflow: hidden;
+      margin-bottom: 24px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 99px;
+      background: var(--accent);
+      box-shadow: 0 0 15px currentColor;
+      transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.3s ease;
+    }
+
+    /* Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(212, 255, 63, 0.08);
+      color: var(--accent);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 16px;
+      border-radius: 99px;
+      border: 1px solid rgba(212, 255, 63, 0.12);
+      margin-bottom: 16px;
+    }
+
+    .live-dot {
+      width: 8px;
+      height: 8px;
+      background: currentColor;
+      border-radius: 50%;
+      animation: livePulse 1.5s infinite;
+    }
+
+    @keyframes livePulse {
+      0% { opacity: 0.4; }
+      50% { opacity: 1; }
+      100% { opacity: 0.4; }
+    }
+
+    /* Sync Status Alert */
+    .sync-info {
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, 0.02);
+      padding: 10px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      margin-top: 10px;
+    }
+
+    /* Grid Controls */
+    .control-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .ctrl-btn {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      padding: 16px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.3s ease;
+    }
+
+    .ctrl-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      fill: none;
+    }
+
+    .ctrl-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .ctrl-btn:active {
+      transform: translateY(0);
+    }
+
+    .ctrl-btn.increment {
+      color: var(--accent);
+      border-color: rgba(212, 255, 63, 0.15);
+    }
+
+    .ctrl-btn.increment:hover {
+      background: rgba(212, 255, 63, 0.08);
+      box-shadow: 0 0 20px rgba(212, 255, 63, 0.1);
+    }
+
+    .ctrl-btn.decrement {
+      color: var(--fire);
+      border-color: rgba(255, 107, 0, 0.15);
+    }
+
+    .ctrl-btn.decrement:hover {
+      background: rgba(255, 107, 0, 0.08);
+      box-shadow: 0 0 20px rgba(255, 107, 0, 0.1);
+    }
+
+    .ctrl-btn.full-width {
+      grid-column: span 2;
+      padding: 18px;
+    }
+
+    .ctrl-btn.danger {
+      color: #fff;
+      background: rgba(255, 59, 48, 0.15);
+      border-color: rgba(255, 59, 48, 0.25);
+    }
+
+    .ctrl-btn.danger:hover {
+      background: var(--danger);
+      box-shadow: 0 0 25px rgba(255, 59, 48, 0.25);
+      border-color: var(--danger);
+    }
+
+    .ctrl-btn.reset {
+      color: var(--text);
+    }
+
+    .ctrl-btn.reset:hover {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    /* Toast System */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      width: calc(100% - 48px);
+      max-width: 320px;
+    }
+
+    .toast {
+      background: rgba(18, 18, 18, 0.9);
+      border: 1px solid var(--border);
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(10px);
+      animation: slideInUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .toast.success {
+      border-color: rgba(40, 205, 65, 0.3);
+      color: #fff;
+    }
+
+    .toast.success::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    .toast.error {
+      border-color: rgba(255, 59, 48, 0.3);
+      color: #fff;
+    }
+
+    .toast.error::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: var(--danger);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--danger);
+    }
+
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* Lock Panel Shake Animation */
+    .shake {
+      animation: shakePanel 0.4s ease;
+    }
+
+    @keyframes shakePanel {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+
+    /* Sign out Button */
+    .signout-btn {
+      background: transparent;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 24px;
+      width: 100%;
+      text-align: center;
+      transition: color 0.2s ease;
+    }
+
+    .signout-btn:hover {
+      color: var(--danger);
+    }
+
+    .waitlist-entry {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 13px;
+    }
+
+    .waitlist-entry .wl-name {
+      font-weight: 700;
+    }
+
+    .waitlist-entry .wl-meta {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .waitlist-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .waitlist-toolbar span {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .export-btn {
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+      padding: 8px 14px;
+      border-radius: 10px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .export-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    #waitlistList {
+      max-height: 280px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- LOCK SCREEN PANEL -->
+    <div id="lockScreen" class="glass-card">
+      <div class="brand-header">
+        <h1>ONLY<span>42</span>BIRYANI</h1>
+        <p>Admin Authorization</p>
+      </div>
+
+      <div class="pin-input-container">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <div class="pin-keyboard">
+        <button class="key-btn" onclick="pressKey('1')">1</button>
+        <button class="key-btn" onclick="pressKey('2')">2</button>
+        <button class="key-btn" onclick="pressKey('3')">3</button>
+        <button class="key-btn" onclick="pressKey('4')">4</button>
+        <button class="key-btn" onclick="pressKey('5')">5</button>
+        <button class="key-btn" onclick="pressKey('6')">6</button>
+        <button class="key-btn" onclick="pressKey('7')">7</button>
+        <button class="key-btn" onclick="pressKey('8')">8</button>
+        <button class="key-btn" onclick="pressKey('9')">9</button>
+        <button class="key-btn clear" onclick="clearPIN()">CLEAR</button>
+        <button class="key-btn" onclick="pressKey('0')">0</button>
+        <button class="key-btn backspace" onclick="backspaceKey()">⌫</button>
+      </div>
+    </div>
+
+    <!-- MAIN DASHBOARD PANEL -->
+    <div id="dashboard" class="glass-card">
+      <div class="brand-header">
+        <h1>ONLY<span>42</span>BIRYANI</h1>
+        <p>Live Kitchen Dashboard</p>
+      </div>
+
+      <div class="status-panel">
+        <div class="status-badge" id="dashboardStatus">
+          <span class="live-dot"></span>
+          <span>SYNCING WITH KITCHEN</span>
+        </div>
+        <small>ACTIVE CAPACITY</small>
+        <h2 id="inventoryCount">-- / 42</h2>
+        <p id="inventoryText">PLATES REMAINING</p>
+
+        <div class="progress-bar-container">
+          <div class="progress-fill" id="inventoryProgressFill"></div>
+        </div>
+
+        <div class="sync-info">
+          <svg style="width:14px; height:14px;" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"></path>
+          </svg>
+          <span id="syncText">Loading live inventory...</span>
+        </div>
+      </div>
+
+      <div class="control-grid">
+        <button class="ctrl-btn increment" onclick="increaseInventory()">
+          <svg viewBox="0 0 24 24"><path d="M12 4v16m8-8H4" stroke-linecap="round"/></svg>
+          <span>Add 1 Plate</span>
+        </button>
+        <button class="ctrl-btn decrement" onclick="decreaseInventory()">
+          <svg viewBox="0 0 24 24"><path d="M20 12H4" stroke-linecap="round"/></svg>
+          <span>Subtract 1 Plate</span>
+        </button>
+        <button class="ctrl-btn reset full-width" onclick="resetInventory()">
+          <span>Reset to Maximum (42 Plates)</span>
+        </button>
+        <button class="ctrl-btn danger full-width" onclick="soldOut()">
+          <span>Declare Sold Out</span>
+        </button>
+        <button class="ctrl-btn full-width" onclick="toggleWaitlistPanel()">
+          <span id="waitlistToggleLabel">View Waitlist</span>
+        </button>
+      </div>
+
+      <div id="waitlistPanel" style="display:none; margin-bottom:24px;">
+        <div class="waitlist-toolbar">
+          <span id="waitlistCountText">Loading...</span>
+          <button class="export-btn" onclick="exportWaitlistCSV()">Export CSV</button>
+        </div>
+        <div id="waitlistList"></div>
+      </div>
+
+      <button class="signout-btn" onclick="signOut()">Lock Dashboard</button>
+    </div>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Supabase Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
+
+  <script>
+    // Supabase config
+    const SUPABASE_URL = "https://pubtyadwysqdozzhgzyz.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1YnR5YWR3eXNxZG96emhnenl6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0MDgxNDEsImV4cCI6MjA5NDk4NDE0MX0.uj4V8SXb5sCouvVRq6E8GZNsvefSg0QpbsARqVQAFTk";
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const totalInventory = 42;
+    let currentInventory = 0;
+    let isSaving = false;
+
+    // PIN lock screen state
+    const correctPIN = "4242";
+    let enteredPIN = "";
+
+    // Toast Helper
+    function showToast(message, type = "success") {
+      const container = document.getElementById("toastContainer");
+      const toast = document.createElement("div");
+      toast.className = `toast ${type}`;
+      toast.innerText = message;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => toast.remove(), 400);
+      }, 3000);
+    }
+
+    // Keypad Logic
+    function pressKey(num) {
+      if (enteredPIN.length < 4) {
+        enteredPIN += num;
+        updatePINDots();
+        
+        if (enteredPIN.length === 4) {
+          setTimeout(verifyPIN, 200);
+        }
+      }
+    }
+
+    function clearPIN() {
+      enteredPIN = "";
+      updatePINDots();
+    }
+
+    function backspaceKey() {
+      enteredPIN = enteredPIN.slice(0, -1);
+      updatePINDots();
+    }
+
+    function updatePINDots() {
+      const dots = document.querySelectorAll(".pin-dot");
+      dots.forEach((dot, index) => {
+        if (index < enteredPIN.length) {
+          dot.classList.add("active");
+        } else {
+          dot.classList.remove("active");
+        }
+      });
+    }
+
+    function verifyPIN() {
+      if (enteredPIN === correctPIN) {
+        showToast("Authorization Successful", "success");
+        // Show dashboard, hide lockscreen
+        document.getElementById("lockScreen").style.display = "none";
+        const dashboard = document.getElementById("dashboard");
+        dashboard.style.display = "block";
+        setTimeout(() => dashboard.classList.add("show"), 50);
+        
+        loadInventory();
+        // Start polling inventory every 4 seconds to sync status in background
+        setInterval(loadInventorySilent, 4000);
+      } else {
+        const lockScreen = document.getElementById("lockScreen");
+        lockScreen.classList.add("shake");
+        showToast("Incorrect PIN. Please try again.", "error");
+        
+        setTimeout(() => {
+          lockScreen.classList.remove("shake");
+          clearPIN();
+        }, 400);
+      }
+    }
+
+    function signOut() {
+      clearPIN();
+      const dashboard = document.getElementById("dashboard");
+      dashboard.classList.remove("show");
+      setTimeout(() => {
+        dashboard.style.display = "none";
+        document.getElementById("lockScreen").style.display = "flex";
+      }, 300);
+      showToast("Dashboard locked", "success");
+    }
+
+    // Load inventory from Supabase
+    async function loadInventory() {
+      const syncText = document.getElementById("syncText");
+      syncText.innerText = "Syncing with database...";
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from("inventory")
+          .select("*")
+          .eq("id", 1)
+          .single();
+
+        if (error) throw error;
+
+        currentInventory = data.remaining;
+        updateInventoryUI();
+        syncText.innerText = "Connected & Active";
+      } catch (err) {
+        console.error(err);
+        showToast("Database fetch failed", "error");
+        syncText.innerText = "Connection lost";
+      }
+    }
+
+    // Silent background load to avoid disturbing active UI
+    async function loadInventorySilent() {
+      if (isSaving) return;
+      try {
+        const { data, error } = await supabaseClient
+          .from("inventory")
+          .select("*")
+          .eq("id", 1)
+          .single();
+
+        if (!error && !isSaving) {
+          currentInventory = data.remaining;
+          updateInventoryUI();
+          document.getElementById("syncText").innerText = "Connected & Active";
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Update UI elements on Dashboard
+    function updateInventoryUI() {
+      document.getElementById("inventoryCount").innerHTML = currentInventory + " / " + totalInventory;
+      
+      const progressFill = document.getElementById("inventoryProgressFill");
+      const percentage = (currentInventory / totalInventory) * 100;
+      progressFill.style.width = percentage + "%";
+      
+      const badge = document.getElementById("dashboardStatus");
+      const badgeText = badge.querySelector("span:not(.live-dot)");
+      const countEl = document.getElementById("inventoryCount");
+      
+      // Dynamic colors based on level
+      if (currentInventory <= 0) {
+        progressFill.style.backgroundColor = "var(--danger)";
+        countEl.style.color = "var(--danger)";
+        badge.style.color = "var(--danger)";
+        badge.style.borderColor = "rgba(255, 59, 48, 0.2)";
+        badge.style.backgroundColor = "rgba(255, 59, 48, 0.08)";
+        badgeText.innerText = "DEG EMPTY (SOLD OUT)";
+        document.getElementById("inventoryText").innerText = "SOLD OUT";
+      } else if (currentInventory <= 8) {
+        progressFill.style.backgroundColor = "var(--fire)";
+        countEl.style.color = "var(--fire)";
+        badge.style.color = "var(--fire)";
+        badge.style.borderColor = "rgba(255, 107, 0, 0.2)";
+        badge.style.backgroundColor = "rgba(255, 107, 0, 0.08)";
+        badgeText.innerText = "WARNING: CAPACITY LOW";
+        document.getElementById("inventoryText").innerText = "PLATES REMAINING";
+      } else {
+        progressFill.style.backgroundColor = "var(--accent)";
+        countEl.style.color = "var(--accent)";
+        badge.style.color = "var(--accent)";
+        badge.style.borderColor = "rgba(212, 255, 63, 0.12)";
+        badge.style.backgroundColor = "rgba(212, 255, 63, 0.08)";
+        badgeText.innerText = "LIVE KITCHEN STATE";
+        document.getElementById("inventoryText").innerText = "PLATES REMAINING";
+      }
+    }
+
+    // Save changes back to Supabase
+    async function saveInventory() {
+      isSaving = true;
+      const syncText = document.getElementById("syncText");
+      syncText.innerText = "Saving changes...";
+      
+      try {
+        const { error } = await supabaseClient
+          .from("inventory")
+          .update({ remaining: currentInventory })
+          .eq("id", 1);
+
+        if (error) throw error;
+
+        updateInventoryUI();
+        showToast(`Inventory updated to ${currentInventory}`, "success");
+        syncText.innerText = "Connected & Active";
+      } catch (err) {
+        console.error(err);
+        showToast("Failed to save changes", "error");
+        syncText.innerText = "Failed to sync";
+      } finally {
+        isSaving = false;
+      }
+    }
+
+    // User Operations
+    function increaseInventory() {
+      if (currentInventory < totalInventory) {
+        currentInventory++;
+        saveInventory();
+      } else {
+        showToast("Capacity is already at maximum", "error");
+      }
+    }
+
+    function decreaseInventory() {
+      if (currentInventory > 0) {
+        currentInventory--;
+        saveInventory();
+      } else {
+        showToast("Inventory is already empty", "error");
+      }
+    }
+
+    function soldOut() {
+      if (currentInventory !== 0) {
+        currentInventory = 0;
+        saveInventory();
+      } else {
+        showToast("Already declared sold out", "error");
+      }
+    }
+
+    function resetInventory() {
+      if (currentInventory !== totalInventory) {
+        currentInventory = totalInventory;
+        saveInventory();
+      } else {
+        showToast("Already at maximum capacity", "error");
+      }
+    }
+
+    // Waitlist viewer & export
+    let waitlistEntries = [];
+
+    function escapeHtml(value) {
+      const div = document.createElement("div");
+      div.innerText = value == null ? "" : String(value);
+      return div.innerHTML;
+    }
+
+    async function toggleWaitlistPanel() {
+      const panel = document.getElementById("waitlistPanel");
+      const label = document.getElementById("waitlistToggleLabel");
+      const isHidden = panel.style.display === "none";
+      panel.style.display = isHidden ? "block" : "none";
+      label.innerText = isHidden ? "Hide Waitlist" : "View Waitlist";
+      if (isHidden) {
+        await loadWaitlist();
+      }
+    }
+
+    async function loadWaitlist() {
+      const countText = document.getElementById("waitlistCountText");
+      const listEl = document.getElementById("waitlistList");
+      countText.innerText = "Loading...";
+
+      try {
+        const { data, error } = await supabaseClient
+          .from("waitlist")
+          .select("*")
+          .order("id", { ascending: false });
+
+        if (error) throw error;
+
+        waitlistEntries = data || [];
+        countText.innerText = `${waitlistEntries.length} people waiting`;
+
+        listEl.innerHTML = waitlistEntries.length
+          ? waitlistEntries.map(entry => `
+              <div class="waitlist-entry">
+                <div class="wl-name">${escapeHtml(entry.name) || "—"}</div>
+                <div class="wl-meta">${escapeHtml(entry.phone) || "—"} · ${escapeHtml(entry.email) || "—"}</div>
+              </div>
+            `).join("")
+          : "<div class='sync-info'>No entries yet</div>";
+      } catch (err) {
+        console.error(err);
+        countText.innerText = "Failed to load waitlist";
+        showToast("Could not load waitlist", "error");
+      }
+    }
+
+    function exportWaitlistCSV() {
+      if (!waitlistEntries.length) {
+        showToast("No waitlist data to export", "error");
+        return;
+      }
+
+      const rows = [["Name", "Phone", "Email"]];
+      waitlistEntries.forEach(e => rows.push([e.name || "", e.phone || "", e.email || ""]));
+
+      const csv = rows
+        .map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(","))
+        .join("\n");
+
+      const blob = new Blob([csv], { type: "text/csv" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "only42biryani-waitlist.csv";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // Prevent submitting key buttons if Enter is pressed or other standard keyboard behaviors
+    document.addEventListener("keydown", (e) => {
+      const lockScreen = document.getElementById("lockScreen");
+      if (lockScreen && getComputedStyle(lockScreen).display !== "none") {
+        if (e.key >= "0" && e.key <= "9") {
+          pressKey(e.key);
+        } else if (e.key === "Backspace") {
+          backspaceKey();
+        } else if (e.key === "Escape") {
+          clearPIN();
+        }
+      }
+    });
+
+  </script>
+</body>
+</html>
