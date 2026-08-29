@@ -12,9 +12,24 @@ const supabaseClient =
 
 let totalInventory = 42;
 
+/* PRE-LAUNCH MODE
+   Product has not launched yet — show a "coming soon" preview
+   instead of live/sold-out inventory claims. Flip to false on
+   launch day to resume real Supabase-driven inventory. */
+
+const PRE_LAUNCH_MODE = true;
+
 /* LOAD INVENTORY */
 
 async function loadInventory(){
+
+  if(PRE_LAUNCH_MODE){
+
+    updateInventoryUI(totalInventory);
+
+    return;
+
+  }
 
   const { data, error } =
     await supabaseClient
@@ -70,6 +85,52 @@ function updateInventoryUI(currentInventory){
     document.getElementById(
       "inventoryProgressFill"
     );
+
+  if(PRE_LAUNCH_MODE){
+
+    inventoryCount.innerHTML =
+      totalInventory + " / " + totalInventory;
+
+    inventoryText.innerHTML =
+      "PLATES PER DROP";
+
+    inventoryCount.style.color =
+      "#D4FF3F";
+
+    dropStatus.innerHTML =
+      '<span class="live-dot"></span> PREVIEW — LAUNCHING SOON';
+
+    dropStatus.style.color =
+      "#D4FF3F";
+
+    if(floatingTag){
+
+      floatingTag.innerHTML =
+        "COMING SOON";
+
+    }
+
+    progressFill.style.width =
+      "100%";
+
+    progressFill.style.background =
+      "#D4FF3F";
+
+    progressFill.classList.remove(
+      "low-inventory"
+    );
+
+    inventoryBox.classList.remove(
+      "inventory-danger"
+    );
+
+    document.body.classList.remove(
+      "sold-out-mode"
+    );
+
+    return;
+
+  }
 
   /* MAIN INVENTORY */
 
@@ -207,10 +268,14 @@ function updateInventoryUI(currentInventory){
 
 loadInventory();
 
-setInterval(
-  loadInventory,
-  3000
-);
+if(!PRE_LAUNCH_MODE){
+
+  setInterval(
+    loadInventory,
+    3000
+  );
+
+}
 
 /* WAITLIST SUBMISSION & LIVE STATS */
 
