@@ -126,7 +126,7 @@ export default function WaitlistForm() {
           />
           <span>
             I agree to receive launch updates and offers from Only42Biryani on WhatsApp, SMS and email. I can opt out at any time.{' '}
-            <Link href="/privacy" className="underline hover:text-accent" target="_blank">Privacy policy</Link>
+            <Link href="/privacy" className="underline hover:text-accent" target="_blank" rel="noopener noreferrer">Privacy policy</Link>
           </span>
         </label>
 

@@ -88,11 +88,11 @@ export default async function HomePage() {
               <span className="text-fire font-bold">[ INIT ]</span> LIMITED DAILY DROP PROTOCOL
             </div>
 
-            <div className="font-grotesk font-black text-[36px] sm:text-5xl md:text-7xl lg:text-8xl leading-[1.1] md:leading-[0.9] tracking-tighter uppercase mb-6">
-              <div className="text-white block">BEST HYDERABAD</div>
-              <div className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-white drop-shadow-[0_0_30px_rgba(212,255,63,0.2)] w-fit block pb-1">CHICKEN</div>
-              <div className="text-white block">BIRYANI.</div>
-            </div>
+            <h1 className="font-grotesk font-black text-[36px] sm:text-5xl md:text-7xl lg:text-8xl leading-[1.1] md:leading-[0.9] tracking-tighter uppercase mb-6">
+              <span className="text-white block">BEST HYDERABAD</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-white drop-shadow-[0_0_30px_rgba(212,255,63,0.2)] w-fit block pb-1">CHICKEN</span>
+              <span className="text-white block">BIRYANI.</span>
+            </h1>
             
             <p className="text-fire font-mono font-bold text-xs sm:text-sm tracking-[3px] sm:tracking-[5px] uppercase drop-shadow-[0_0_10px_rgba(255,107,0,0.5)] leading-relaxed mb-8">
               &gt; CAPACITY: ONLY 42 PLATES DAILY
