@@ -1,0 +1,102 @@
+'use client';
+
+import { useRef } from 'react';
+import CountdownTimer from './CountdownTimer';
+import BorderBeam from './BorderBeam';
+import { useStatus } from './StatusProvider';
+
+const TOTAL = 42;
+
+export default function InventoryBox() {
+  const { launched, remaining } = useStatus();
+  const PRE_LAUNCH_MODE = !launched;
+  const count = launched ? remaining : TOTAL;
+  const loading = false;
+  const boxRef = useRef(null);
+
+  const percentage = count === null ? 0 : (count / TOTAL) * 100;
+  const isSoldOut = count !== null && count <= 0;
+  const isLow = count !== null && count >= 1 && count <= 8;
+  const isMedium = count !== null && count >= 9 && count <= 19;
+
+  const barColor = PRE_LAUNCH_MODE
+    ? '#D4FF3F'
+    : isSoldOut ? '#ff0000' : isLow ? '#ff3b30' : isMedium ? '#ff7b00' : '#D4FF3F';
+
+  const countColor = PRE_LAUNCH_MODE ? '#D4FF3F'
+    : isSoldOut ? '#ff3b30' : isLow ? '#ff3b30' : isMedium ? '#ff7b00' : '#D4FF3F';
+
+  return (
+    <div
+      ref={boxRef}
+      className={`mt-10 border rounded-[30px] p-8 max-w-[390px] backdrop-blur-md transition-all duration-300
+        ${isSoldOut && !PRE_LAUNCH_MODE
+          ? 'border-red-500/40 shadow-[0_0_60px_rgba(255,59,48,0.16)]'
+          : isLow && !PRE_LAUNCH_MODE
+          ? 'border-orange-500/40 animate-danger-pulse'
+          : 'border-accent/10 animate-pulse-glow'
+        }`}
+      style={{ background: 'rgba(255,255,255,0.03)' }}
+    >
+      {/* Vengence UI inspired Border Beam */}
+      {(!PRE_LAUNCH_MODE && isSoldOut) && (
+        <BorderBeam colorFrom="rgba(255,59,48,0.9)" colorTo="transparent" />
+      )}
+      {(!PRE_LAUNCH_MODE && isLow && !isSoldOut) && (
+        <BorderBeam colorFrom="rgba(255,107,0,0.9)" colorTo="transparent" />
+      )}
+      {(!PRE_LAUNCH_MODE && !isLow && !isSoldOut) && (
+        <BorderBeam colorFrom="rgba(212,255,63,0.5)" colorTo="transparent" />
+      )}
+
+      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">Today&apos;s Inventory</p>
+
+      <h2
+        className="font-grotesk text-[74px] leading-none tracking-[-3px] my-3 transition-colors"
+        style={{ color: countColor, textShadow: `0 0 18px ${countColor}33` }}
+      >
+        {loading ? '…' : PRE_LAUNCH_MODE ? `${TOTAL} / ${TOTAL}` : `${count ?? '–'} / ${TOTAL}`}
+      </h2>
+
+      <p className="text-sm tracking-[4px] mb-4 text-neutral-300">
+        {PRE_LAUNCH_MODE ? 'PLATES PER DROP' : isSoldOut ? 'DEG EMPTY' : 'LEFT TODAY'}
+      </p>
+
+      {/* Progress Bar */}
+      <div className="w-full h-2.5 bg-[#181818] rounded-full overflow-hidden mb-5 border border-white/5">
+        <div
+          className="h-full rounded-full transition-all duration-1000 relative overflow-hidden"
+          style={{
+            width: `${PRE_LAUNCH_MODE ? 100 : percentage}%`,
+            background: barColor,
+            boxShadow: `0 0 15px ${barColor}`,
+          }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-progress-shine" />
+        </div>
+      </div>
+
+      {/* Status Badge */}
+      <span
+        className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2.5 rounded-full border mb-4"
+        style={{
+          color: PRE_LAUNCH_MODE ? '#D4FF3F' : isSoldOut ? '#ff4d4d' : '#D4FF3F',
+          background: PRE_LAUNCH_MODE ? 'rgba(212,255,63,0.08)' : isSoldOut ? 'rgba(255,77,77,0.08)' : 'rgba(212,255,63,0.08)',
+          borderColor: PRE_LAUNCH_MODE ? 'rgba(212,255,63,0.12)' : isSoldOut ? 'rgba(255,77,77,0.15)' : 'rgba(212,255,63,0.12)',
+        }}
+      >
+        {!isSoldOut && <span className="w-2 h-2 rounded-full bg-current animate-live-pulse" />}
+        {PRE_LAUNCH_MODE ? 'PREVIEW — LAUNCHING SOON' : isSoldOut ? 'DROP STATUS — SOLD OUT' : 'DROP STATUS — LIVE'}
+      </span>
+
+      {/* Countdown shows only in sold-out mode */}
+      {isSoldOut && !PRE_LAUNCH_MODE && <CountdownTimer />}
+
+      <p className="text-neutral-500 text-sm leading-relaxed mt-4">
+        {PRE_LAUNCH_MODE
+          ? "We haven't launched yet — the numbers above show how each day's drop will work. Join the waitlist to get notified the moment we go live."
+          : 'Inventory updates are synced manually based on live kitchen preparation, Swiggy and Zomato orders.'}
+      </p>
+    </div>
+  );
+}

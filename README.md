@@ -6,76 +6,75 @@ Only 42 plates daily.
 
 ---
 
+## TECH STACK
+
+- **Framework**: Next.js 16 (App Router)
+- **Styling**: Tailwind CSS v4
+- **Database**: Supabase (inventory + waitlist)
+- **Hosting**: Vercel
+
+---
+
 ## PROJECT STRUCTURE
 
+```
 only42biryani/
-
-├── index.html
-├── css/
-│ └── style.css
-├── js/
-│ └── app.js
-├── admin/
-│ └── admin.html
-├── images/
-└── README.md
-
----
-
-## CURRENT FEATURES
-
-- Dark premium landing page
-- Manual live inventory
-- Admin inventory controls
-- Swiggy/Zomato CTA buttons
-- Mobile responsive design
-- Sold-out state
-- Single-product focus
-- localStorage inventory persistence
+├── app/
+│   ├── layout.jsx        ← Root layout + SEO metadata
+│   ├── page.jsx          ← Main landing page
+│   ├── globals.css       ← Global styles + animations
+│   └── admin/
+│       └── page.jsx      ← Admin dashboard route
+├── components/
+│   ├── InventoryBox.jsx  ← Live inventory counter
+│   ├── WaitlistForm.jsx  ← Signup form + success modal
+│   ├── CountdownTimer.jsx← Next drop countdown
+│   ├── TiltCard.jsx      ← 3D tilt + sheen effect
+│   └── AdminDashboard.jsx← PIN-locked admin controls
+├── lib/
+│   └── supabase.js       ← Supabase client singleton
+├── public/
+│   ├── images/           ← favicon.png, biryani photos
+│   ├── robots.txt
+│   └── sitemap.xml
+└── _backup/              ← Original HTML/CSS/JS files
+```
 
 ---
 
-## CURRENT TECH STACK
+## RUNNING LOCALLY
 
-Frontend:
-- HTML
-- CSS
-- JavaScript
+```bash
+npm run dev
+```
 
-Hosting:
-- Vercel
+Open [http://localhost:3000](http://localhost:3000)
 
-Version Control:
-- GitHub
+Admin dashboard: [http://localhost:3000/admin](http://localhost:3000/admin)
+Admin PIN: **4242**
 
 ---
 
-## INVENTORY SYSTEM
+## FEATURES
 
-Inventory is controlled manually through:
-
-/admin/admin.html
-
-Features:
-- +1 Plate
-- -1 Plate
-- Sold Out
-- Reset Inventory
-
-Inventory persists using browser localStorage.
+- Pre-launch mode (flip `PRE_LAUNCH_MODE` in `components/InventoryBox.jsx`)
+- Real-time Supabase inventory sync (every 3 seconds)
+- VIP Waitlist with live counter + Supabase storage
+- Countdown timer to next 12:30 PM drop (shows on sold-out)
+- 3D card tilt with moving sheen reflection
+- Scroll reveal animations
+- Cursor glow effect
+- PIN-protected admin dashboard
+- Full SEO + Open Graph + JSON-LD
 
 ---
 
-## FUTURE UPGRADES
+## DEPLOY TO VERCEL
 
-- Supabase backend
-- Real-time global inventory
-- Admin authentication
-- Swiggy/Zomato links
-- Instagram integration
-- Reservation system
-- Waitlist system
-- Delivery slot booking
+1. Push to GitHub
+2. Import repo in Vercel
+3. Framework Preset → **Next.js** (auto-detected)
+4. Deploy ✓
 
 ---
 
@@ -88,5 +87,4 @@ Only42Biryani is built around:
 - single-product obsession
 - premium dark identity
 
-When the deg is empty,
-we stop cooking.
+When the deg is empty, we stop cooking.

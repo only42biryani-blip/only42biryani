@@ -1,0 +1,281 @@
+@import "tailwindcss";
+
+@theme {
+  --color-accent: #D4FF3F;
+  --color-fire: #FF6B00;
+  --color-fire-glow: #ff8a00;
+  --color-bg: #080808;
+  --color-card: #121212;
+  --color-text: #F5F1E8;
+  --color-muted: #8A8A8A;
+  --color-border: #232323;
+  --color-danger: #ff3b30;
+
+  --font-inter: var(--font-inter);
+  --font-grotesk: var(--font-grotesk);
+}
+
+/* No global `* { margin: 0; padding: 0 }` reset here: Tailwind's preflight already
+   resets these, and an unlayered reset overrides every padding/margin utility. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #080808;
+  color: #F5F1E8;
+  overflow-x: hidden;
+}
+
+/* Ambient background gradients (Softened for premium feel) */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at top right, rgba(212,255,63,0.04), transparent 45%),
+    radial-gradient(circle at bottom left, rgba(255,107,0,0.03), transparent 40%),
+    radial-gradient(circle at center, rgba(255,255,255,0.01), transparent 50%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Custom animations */
+@keyframes pageFade {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 0.4; }
+  50%       { opacity: 1; }
+}
+
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 0 0 rgba(212,255,63,0.05); }
+  50%       { box-shadow: 0 0 50px rgba(212,255,63,0.14), 0 0 80px rgba(255,107,0,0.08); }
+}
+
+@keyframes dangerPulse {
+  0%, 100% { box-shadow: 0 0 0 rgba(255,107,0,0.12); }
+  50%       { box-shadow: 0 0 60px rgba(255,107,0,0.28); }
+}
+
+@keyframes progressShine {
+  0%   { left: -100%; }
+  100% { left: 100%; }
+}
+
+@keyframes steamFloat1 {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  20%  { opacity: 0.16; }
+  100% { transform: translateY(-140px) scale(1.5); opacity: 0; }
+}
+
+@keyframes steamFloat2 {
+  0%   { transform: translateY(0) scale(1); opacity: 0; }
+  25%  { opacity: 0.14; }
+  100% { transform: translateY(-160px) scale(1.6); opacity: 0; }
+}
+
+@keyframes loaderFill {
+  from { width: 0%; }
+  to   { width: 100%; }
+}
+
+@keyframes loaderHide {
+  0%, 85% { opacity: 1; visibility: visible; }
+  100%    { opacity: 0; visibility: hidden; pointer-events: none; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60%  { transform: translateX(-8px); }
+  40%, 80%  { transform: translateX(8px); }
+}
+
+@keyframes modalAppear {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes revealUp {
+  from { opacity: 0; transform: translateY(40px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Utility classes for animations */
+.animate-page-fade    { animation: pageFade 1s ease forwards; }
+.animate-live-pulse   { animation: livePulse 1.5s infinite; }
+.animate-pulse-glow   { animation: pulseGlow 4s infinite; }
+.animate-danger-pulse { animation: dangerPulse 1.2s infinite; }
+.animate-shake        { animation: shake 0.45s ease; }
+.animate-modal-appear { animation: modalAppear 0.4s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-reveal-up    { animation: revealUp 0.8s cubic-bezier(0.16,1,0.3,1) forwards; }
+.animate-progress-shine {
+  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.45), transparent);
+  animation: progressShine 2.4s infinite;
+}
+.animate-steam-1 { animation: steamFloat1 8s linear infinite; }
+.animate-steam-2 { animation: steamFloat2 10s linear infinite; }
+
+/* Font helpers */
+.font-inter    { font-family: var(--font-inter), sans-serif; }
+.font-grotesk  { font-family: var(--font-grotesk), sans-serif; }
+
+/* Scroll reveal */
+.reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.9s ease, transform 0.9s ease; }
+.reveal.active { opacity: 1; transform: translateY(0); }
+
+/* Cursor glow */
+.cursor-glow {
+  position: fixed;
+  width: 260px;
+  height: 260px;
+  background: radial-gradient(circle, rgba(212,255,63,0.10), transparent 70%);
+  pointer-events: none;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 999;
+  mix-blend-mode: screen;
+}
+
+@media (max-width: 640px) {
+  .cursor-glow { display: none; }
+}
+
+/* Image masking utilities */
+.mask-radial-faded {
+  -webkit-mask-image: radial-gradient(circle, black 40%, transparent 100%);
+  mask-image: radial-gradient(circle, black 40%, transparent 100%);
+}
+.mask-linear-bottom {
+  -webkit-mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 50%, transparent 100%);
+}
+
+/* CYBERPUNK HUD UTILITIES */
+
+/* Scanline effect over images/containers */
+.scanline {
+  position: relative;
+  overflow: hidden;
+}
+.scanline::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 10px;
+  background: linear-gradient(to bottom, transparent, rgba(212,255,63,0.15), transparent);
+  animation: scan 4s linear infinite;
+  pointer-events: none;
+  z-index: 50;
+}
+@keyframes scan {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+/* 3D Spinning Image Logo */
+.animate-spin-3d {
+  animation: spin-3d 6s linear infinite;
+  transform-style: preserve-3d;
+}
+@keyframes spin-3d {
+  0% { transform: perspective(800px) rotateY(0deg); }
+  100% { transform: perspective(800px) rotateY(360deg); }
+}
+
+/* Neon Flicker GIF simulation */
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { opacity: 1; filter: drop-shadow(0 0 12px rgba(212,255,63,0.8)); }
+  20%, 24%, 55% { opacity: 0.4; filter: none; }
+  22% { opacity: 0.8; filter: drop-shadow(0 0 2px rgba(212,255,63,0.2)); }
+}
+
+/* Animated Cyber Grid Background */
+.bg-cyber-grid {
+  background-image: 
+    linear-gradient(rgba(212,255,63,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(212,255,63,0.03) 1px, transparent 1px);
+  background-size: 30px 30px;
+  animation: grid-scroll 15s linear infinite;
+}
+@keyframes grid-scroll {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 30px; }
+}
+
+/* Glitch Text Effect */
+.glitch-text {
+  position: relative;
+}
+.glitch-text::before, .glitch-text::after {
+  content: attr(data-text);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  clip: rect(0, 900px, 0, 0);
+}
+.glitch-text:hover::before {
+  left: 2px;
+  text-shadow: -2px 0 red;
+  animation: glitch-anim-1 2s infinite linear alternate-reverse;
+}
+.glitch-text:hover::after {
+  left: -2px;
+  text-shadow: -2px 0 blue;
+  animation: glitch-anim-2 3s infinite linear alternate-reverse;
+}
+@keyframes glitch-anim-1 {
+  0% { clip: rect(20px, 9999px, 15px, 0); }
+  20% { clip: rect(80px, 9999px, 75px, 0); }
+  40% { clip: rect(10px, 9999px, 5px, 0); }
+  60% { clip: rect(60px, 9999px, 55px, 0); }
+  80% { clip: rect(40px, 9999px, 35px, 0); }
+  100% { clip: rect(90px, 9999px, 85px, 0); }
+}
+@keyframes glitch-anim-2 {
+  0% { clip: rect(15px, 9999px, 10px, 0); }
+  20% { clip: rect(75px, 9999px, 70px, 0); }
+  40% { clip: rect(5px, 9999px, 0px, 0); }
+  60% { clip: rect(55px, 9999px, 50px, 0); }
+  80% { clip: rect(35px, 9999px, 30px, 0); }
+  100% { clip: rect(85px, 9999px, 80px, 0); }
+}
+
+/* Bento Box HUD Container */
+.hud-box {
+  background: #050505;
+  border: 1px solid rgba(255,255,255,0.08);
+  position: relative;
+}
+.hud-box::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; width: 8px; height: 8px;
+  border-top: 2px solid var(--color-accent);
+  border-left: 2px solid var(--color-accent);
+}
+.hud-box::after {
+  content: "";
+  position: absolute;
+  bottom: 0; right: 0; width: 8px; height: 8px;
+  border-bottom: 2px solid var(--color-accent);
+  border-right: 2px solid var(--color-accent);
+}
+
+/* Loader */
+.loader {
+  position: fixed;
+  inset: 0;
+  background: #050505;
+  z-index: 999999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: loaderHide 1.8s ease forwards;
+}
