@@ -1,74 +1,70 @@
 import { Inter, Space_Grotesk } from 'next/font/google';
-import SmoothScroll from '@/components/SmoothScroll';
 import './globals.css';
-import { ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL, PHONE, AREA } from '@/lib/config';
+import { SITE_URL } from '@/lib/config';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-grotesk', weight: ['500', '700'] });
 
 export const viewport = {
   themeColor: '#111111',
+  width: 'device-width',
+  initialScale: 1,
+};
+
+const TITLE = 'Only42Biryani | Best Hyderabad Chicken Dum Biryani';
+const DESCRIPTION =
+  'Hyderabadi chicken dum biryani cooked in one fresh batch of 42 plates a day, then the kitchen stops. Join the Only42Biryani waitlist for launch day in Hyderabad.';
+const OG_IMAGE = {
+  url: '/images/chicken-dum-biryani-hero.jpg',
+  width: 1600,
+  height: 893,
+  alt: 'Hyderabadi chicken dum biryani on a silver plate beside a copper handi',
 };
 
 export const metadata = {
-  title: 'Only42Biryani | Best Hyderabad Chicken Dum Biryani',
-  description: 'Experience authentic Hyderabad chicken dum biryani crafted in small batches. Only 42 premium plates available daily.',
-  keywords: 'Hyderabad Biryani, Best Biryani in Hyderabad, Chicken Dum Biryani Hyderabad, Premium Biryani Hyderabad, Only42Biryani',
+  metadataBase: new URL(SITE_URL),
+  title: { default: TITLE, template: '%s | Only42Biryani' },
+  description: DESCRIPTION,
+  applicationName: 'Only42Biryani',
+  keywords: [
+    'Hyderabad biryani',
+    'best biryani in Hyderabad',
+    'chicken dum biryani Hyderabad',
+    'Hyderabadi dum biryani',
+    'small batch biryani',
+    'Only42Biryani',
+  ],
   authors: [{ name: 'Only42Biryani' }],
-  robots: 'index, follow',
+  creator: 'Only42Biryani',
+  publisher: 'Only42Biryani',
+  category: 'food',
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1, 'max-video-preview': -1 },
+  },
   openGraph: {
     type: 'website',
-    url: 'https://only42biryani.com/',
-    title: 'Only42Biryani | Best Hyderabad Chicken Dum Biryani',
-    description: 'Experience authentic Hyderabad chicken dum biryani crafted in small batches. Only 42 premium plates available daily. Join the waitlist.',
-    images: [{ url: 'https://only42biryani.com/images/chicken-dum-biryani-hero.jpg', width: 1600, height: 893 }],
+    siteName: 'Only42Biryani',
+    locale: 'en_IN',
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [OG_IMAGE],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Only42Biryani | Best Hyderabad Chicken Dum Biryani',
-    description: 'Experience authentic Hyderabad chicken dum biryani crafted in small batches. Only 42 premium plates available daily. Join the waitlist.',
-    images: ['https://only42biryani.com/images/chicken-dum-biryani-hero.jpg'],
+    title: TITLE,
+    description: DESCRIPTION,
+    images: [{ url: OG_IMAGE.url, alt: OG_IMAGE.alt }],
   },
   verification: { google: 'rHu8SMpuE7KQ3PP64-ChAK0vCvWx6NfLygZrsAUpQA8' },
-};
-
-const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'FoodEstablishment',
-  name: 'Only42Biryani',
-  image: 'https://only42biryani.com/images/chicken-dum-biryani-hero.jpg',
-  url: 'https://only42biryani.com/',
-  servesCuisine: 'Hyderabadi Biryani',
-  priceRange: '₹₹',
-  description: 'Only42Biryani serves authentic Hyderabad chicken dum biryani, cooked in small batches of just 42 plates a day.',
-  areaServed: { '@type': 'City', name: 'Hyderabad' },
-  address: {
-    '@type': 'PostalAddress',
-    ...(AREA ? { streetAddress: AREA } : {}),
-    addressLocality: 'Hyderabad',
-    addressRegion: 'Telangana',
-    addressCountry: 'IN',
-  },
-  ...(PHONE ? { telephone: PHONE } : {}),
-  sameAs: [ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL].filter(Boolean),
+  other: { 'geo.region': 'IN-TG', 'geo.placename': 'Hyderabad' },
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${inter.variable} ${spaceGrotesk.variable}`}>
-      <head>
-        <link rel="canonical" href="https://only42biryani.com/" />
-        <link rel="icon" type="image/png" href="/images/favicon.png" />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-      </head>
-      <body className="font-inter antialiased">
-        <SmoothScroll>
-          {children}
-        </SmoothScroll>
-      </body>
+    <html lang="en-IN" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+      <body className="font-inter antialiased">{children}</body>
     </html>
   );
 }

@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { CONTACT_EMAIL } from '@/lib/config';
 
 export const metadata = {
-  title: 'Privacy Policy | Only42Biryani',
+  title: 'Privacy Policy',
+  alternates: { canonical: '/privacy' },
   description: 'How Only42Biryani collects and uses your details when you join the waitlist.',
 };
 

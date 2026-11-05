@@ -10,6 +10,7 @@ import LaunchBanner from '@/components/LaunchBanner';
 import HeroCtas from '@/components/HeroCtas';
 import StickyCta from '@/components/StickyCta';
 import FollowSection from '@/components/FollowSection';
+import JsonLd from '@/components/JsonLd';
 import { getStatus } from '@/lib/status';
 import HowItWorks from '@/components/HowItWorks';
 import ThePlate from '@/components/ThePlate';
@@ -24,6 +25,10 @@ const manifesto = [
   { title: 'SYS_04: COUNTED BY HAND', body: 'PLATE COUNT: Updated manually so it always reflects what the kitchen has really made.' },
 ];
 
+export const metadata = {
+  alternates: { canonical: '/' },
+};
+
 // Rebuild at most every 30s so launch switches made in /admin show up quickly.
 export const revalidate = 30;
 
@@ -33,6 +38,7 @@ export default async function HomePage() {
   return (
     <StatusProvider initial={status}>
     <div className="bg-black min-h-screen font-inter selection:bg-accent selection:text-black">
+      <JsonLd launched={status.launched} />
       <LaunchBanner />
       <CursorGlow />
 
@@ -93,6 +99,11 @@ export default async function HomePage() {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-white drop-shadow-[0_0_30px_rgba(212,255,63,0.2)] w-fit block pb-1">CHICKEN</span>
               <span className="text-white block">BIRYANI.</span>
             </h1>
+
+            <p className="text-white/75 text-sm sm:text-base leading-relaxed max-w-[560px] mb-6">
+              Only42Biryani is a Hyderabad kitchen serving Hyderabadi chicken dum biryani in one fresh batch of 42 plates a day.
+              When the 42 are gone, the kitchen stops. Join the waitlist to hear the moment the next drop goes live.
+            </p>
             
             <p className="text-fire font-mono font-bold text-xs sm:text-sm tracking-[3px] sm:tracking-[5px] uppercase drop-shadow-[0_0_10px_rgba(255,107,0,0.5)] leading-relaxed mb-8">
               &gt; CAPACITY: ONLY 42 PLATES DAILY
@@ -200,7 +211,7 @@ export default async function HomePage() {
         <ThePlate />
         <HowItWorks />
         <Story />
-        <Faq />
+        <Faq launched={status.launched} />
         <FollowSection />
 
         {/* TERMINAL WAITLIST */}
