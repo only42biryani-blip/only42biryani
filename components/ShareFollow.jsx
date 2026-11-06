@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { SITE_URL, INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL, WHATSAPP_NUMBER } from '@/lib/config';
 
-const MESSAGE = 'Only 42 plates of Hyderabadi dum biryani a day, then the kitchen stops. Join the Only42Biryani VIP list before they’re gone:';
+const MESSAGE = 'Only 42 plates of Hyderabadi dum biryani a day, then the kitchen stops. Join the Only42Biryani waitlist before they’re gone:';
 
-const btn = 'font-mono font-bold text-xs tracking-widest uppercase px-5 py-3 border transition-all text-center';
+const btn = 'rounded-full font-semibold text-sm tracking-wide px-5 py-3 border transition-all text-center';
 
 // Share the site + follow on Instagram. Used in the signup success popup and in the
 // "follow the launch" section: every signup is a chance to bring in friends.
@@ -41,7 +41,7 @@ export default function ShareFollow({ className = '' }) {
         Share with friends
       </button>
       <a href={INSTAGRAM_PROFILE_URL || INSTAGRAM_REEL_URL} target="_blank" rel="noopener noreferrer"
-        className={`${btn} border-white/25 text-white hover:border-accent hover:text-accent`}>
+        className={`${btn} border-white/25 text-white hover:border-saffron hover:text-saffron`}>
         {INSTAGRAM_PROFILE_URL ? 'Follow on Instagram' : 'Watch the reel'}
       </a>
       {WHATSAPP_NUMBER && (

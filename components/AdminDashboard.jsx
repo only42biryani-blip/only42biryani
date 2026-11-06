@@ -358,7 +358,7 @@ export default function AdminDashboard() {
           <span className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border mb-3"
             style={{ color, borderColor: `${color}33`, background: `${color}11` }}>
             <span className="w-2 h-2 rounded-full bg-current animate-live-pulse" />
-            {inventory <= 0 ? 'DEG EMPTY (SOLD OUT)' : inventory <= 8 ? 'WARNING: CAPACITY LOW' : 'LIVE KITCHEN STATE'}
+            {inventory <= 0 ? 'SOLD OUT' : inventory <= 8 ? 'WARNING: CAPACITY LOW' : 'LIVE KITCHEN STATE'}
           </span>
 
           <p className="text-neutral-500 text-[10px] tracking-[2px] uppercase">Active Capacity</p>

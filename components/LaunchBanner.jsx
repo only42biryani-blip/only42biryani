@@ -19,7 +19,7 @@ export default function LaunchBanner() {
       <>
         <span>LAUNCHING SOON</span>
         <LaunchCountdown target={launchAt} compact />
-        <a href="#terminal" className="underline underline-offset-4 hover:text-white">JOIN THE VIP LIST</a>
+        <a href="#terminal" className="underline underline-offset-4 hover:text-white">JOIN THE WAITLIST</a>
       </>
     );
   } else if (soldOut) {
@@ -43,7 +43,7 @@ export default function LaunchBanner() {
   }
 
   return (
-    <div className="fixed top-0 inset-x-0 z-[2000] h-10 bg-accent text-black font-mono font-bold text-[11px] sm:text-xs tracking-widest
+    <div className="fixed top-0 inset-x-0 z-[2000] h-10 bg-accent text-black font-bold text-[11px] sm:text-xs tracking-wide
       flex items-center justify-center gap-3 sm:gap-6 px-3 overflow-hidden whitespace-nowrap">
       <span className="w-2 h-2 rounded-full bg-black animate-pulse shrink-0" />
       {content}

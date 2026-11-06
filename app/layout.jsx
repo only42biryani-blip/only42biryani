@@ -1,9 +1,9 @@
-import { Inter, Space_Grotesk } from 'next/font/google';
+import { Inter, Fraunces } from 'next/font/google';
 import './globals.css';
 import { SITE_URL } from '@/lib/config';
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
-const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-grotesk', weight: ['500', '700'] });
+const fraunces = Fraunces({ subsets: ['latin'], variable: '--font-display', weight: ['600', '800'] });
 
 export const viewport = {
   themeColor: '#111111',
@@ -63,7 +63,7 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en-IN" className={`${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang="en-IN" className={`${inter.variable} ${fraunces.variable}`}>
       <body className="font-inter antialiased">{children}</body>
     </html>
   );

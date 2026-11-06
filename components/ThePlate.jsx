@@ -11,7 +11,7 @@ export default function ThePlate() {
   return (
     <section id="the-plate" className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-12">
       <div className="lg:col-span-6 hud-box p-2 relative h-[420px] lg:h-auto lg:min-h-[420px]">
-        <div className="absolute inset-2 overflow-hidden">
+        <div className="absolute inset-2 overflow-hidden rounded-[16px]">
           <Image
             src="/images/chicken-dum-biryani-hero.jpg"
             alt="Chicken dum biryani served on a silver plate with raita, onions and a copper handi"
@@ -23,9 +23,9 @@ export default function ThePlate() {
       </div>
 
       <div className="lg:col-span-6 hud-box p-8 md:p-12 flex flex-col justify-center">
-        <div className="text-accent font-mono text-xs tracking-widest mb-4 uppercase">The only item on the menu</div>
-        <h2 className="font-grotesk text-4xl md:text-5xl font-bold uppercase text-white leading-[1] tracking-tighter mb-6">
-          Chicken Dum Biryani
+        <div className="text-saffron text-xs font-semibold tracking-[3px] mb-4 uppercase">The only item on the menu</div>
+        <h2 className="font-grotesk text-4xl md:text-5xl font-extrabold text-[#F5F1E8] leading-[1.05] tracking-tight mb-6">
+          Chicken dum biryani
         </h2>
         <p className="text-white/70 text-sm md:text-base leading-relaxed mb-8">
           Long-grain basmati rice, slow dum-cooked chicken and sealed handi aroma, prepared fresh every day in a single batch of 42 plates.

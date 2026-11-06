@@ -12,10 +12,10 @@ export default function Marquee({ items, speed = 40, className = "" }) {
         {/* Double the items to make the loop seamless */}
         {[...items, ...items].map((item, i) => (
           <div key={i} className="px-8 flex items-center gap-8">
-            <span className="font-grotesk text-2xl font-bold uppercase tracking-widest text-[#222]">
+            <span className="font-grotesk text-2xl font-extrabold tracking-tight text-saffron/45">
               {item}
             </span>
-            <span className="w-2 h-2 rounded-full bg-accent/30" />
+            <span className="w-2 h-2 rounded-full bg-saffron/40" />
           </div>
         ))}
       </div>

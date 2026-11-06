@@ -19,13 +19,12 @@ export default function HeroCtas() {
       ) : (
         <div className="flex flex-wrap gap-3">
           <a href="#terminal"
-            className="bg-accent text-black border border-accent font-mono font-bold text-xs sm:text-sm px-7 py-4 tracking-widest uppercase
-              shadow-[0_0_30px_rgba(212,255,63,0.35)] hover:bg-white hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] transition-all">
-            Join the VIP list
+            className="rounded-full bg-accent text-black font-bold text-sm px-7 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all">
+            Join the waitlist
           </a>
           <a href={INSTAGRAM_PROFILE_URL || INSTAGRAM_REEL_URL} target="_blank" rel="noopener noreferrer"
-            className="border border-white/25 text-white font-mono font-bold text-xs sm:text-sm px-7 py-4 tracking-widest uppercase
-              hover:border-accent hover:text-accent transition-all">
+            className="rounded-full border border-white/25 text-white font-semibold text-sm px-7 py-4 tracking-wide
+              hover:border-saffron hover:text-saffron transition-all">
             {INSTAGRAM_PROFILE_URL ? 'Follow on Instagram' : 'Watch the reel'}
           </a>
         </div>

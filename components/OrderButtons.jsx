@@ -21,7 +21,7 @@ export default function OrderButtons({ className = '' }) {
           <span
             key={p.name}
             aria-disabled="true"
-            className="border border-white/15 bg-white/[0.03] text-white/40 font-mono font-bold text-xs px-6 py-4 tracking-widest uppercase cursor-not-allowed"
+            className="rounded-full border border-white/15 bg-white/[0.03] text-white/45 font-semibold text-sm px-6 py-4 tracking-wide cursor-not-allowed"
           >
             {p.name} · {soldOut ? 'Sold out today' : 'Launching soon'}
           </span>
@@ -31,8 +31,7 @@ export default function OrderButtons({ className = '' }) {
             href={p.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="bg-accent text-black border border-accent font-mono font-bold text-xs sm:text-sm px-7 py-4 tracking-widest uppercase
-              shadow-[0_0_30px_rgba(212,255,63,0.35)] hover:bg-white hover:shadow-[0_0_40px_rgba(255,255,255,0.4)] transition-all"
+            className="rounded-full bg-accent text-black font-bold text-sm px-7 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all"
           >
             Order on {p.name}
           </a>

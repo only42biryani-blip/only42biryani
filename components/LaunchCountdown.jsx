@@ -52,15 +52,15 @@ export default function LaunchCountdown({ target, compact = false, label }) {
 
   return (
     <div>
-      {label && <div className="font-mono text-[10px] sm:text-xs tracking-[4px] text-accent/80 uppercase mb-3">{label}</div>}
+      {label && <div className="text-[11px] sm:text-xs tracking-[3px] text-saffron font-semibold uppercase mb-3">{label}</div>}
       <div className="flex gap-3" role="timer" aria-label="Time until launch">
         {cells.map(([cellLabel, value]) => (
-          <div key={cellLabel} className="bg-black/60 border border-accent/30 px-3 sm:px-5 py-3 text-center min-w-[64px] sm:min-w-[84px]">
-            <div className="font-grotesk text-3xl sm:text-5xl font-bold text-accent tabular-nums leading-none"
-              style={{ textShadow: '0 0 18px rgba(212,255,63,0.35)' }}>
+          <div key={cellLabel} className="bg-black/40 border border-saffron/25 rounded-2xl px-3 sm:px-5 py-3 text-center min-w-[64px] sm:min-w-[84px]">
+            <div className="font-grotesk text-3xl sm:text-5xl font-extrabold text-[#F5F1E8] tabular-nums leading-none"
+              >
               {pad(value)}
             </div>
-            <div className="text-[10px] text-white/50 uppercase tracking-widest mt-2 font-mono">{cellLabel}</div>
+            <div className="text-[10px] text-white/50 uppercase tracking-widest mt-2">{cellLabel}</div>
           </div>
         ))}
       </div>

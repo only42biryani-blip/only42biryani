@@ -1,7 +1,7 @@
 import AdminDashboard from '@/components/AdminDashboard';
 
 export const metadata = {
-  title: 'Only42Biryani | Admin Dashboard',
+  title: 'Admin Dashboard',
   robots: 'noindex, nofollow',
 };
 

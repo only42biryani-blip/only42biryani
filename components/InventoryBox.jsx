@@ -49,17 +49,17 @@ export default function InventoryBox() {
         <BorderBeam colorFrom="rgba(212,255,63,0.5)" colorTo="transparent" />
       )}
 
-      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">Today&apos;s Inventory</p>
+      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">Plates today</p>
 
       <h2
-        className="font-grotesk text-[74px] leading-none tracking-[-3px] my-3 transition-colors"
-        style={{ color: countColor, textShadow: `0 0 18px ${countColor}33` }}
+        className="font-grotesk font-extrabold text-[74px] leading-none tracking-[-2px] my-3 transition-colors"
+        style={{ color: countColor }}
       >
         {loading ? '…' : PRE_LAUNCH_MODE ? `${TOTAL} / ${TOTAL}` : `${count ?? '–'} / ${TOTAL}`}
       </h2>
 
       <p className="text-sm tracking-[4px] mb-4 text-neutral-300">
-        {PRE_LAUNCH_MODE ? 'PLATES PER DROP' : isSoldOut ? 'DEG EMPTY' : 'LEFT TODAY'}
+        {PRE_LAUNCH_MODE ? 'PLATES PER DROP' : isSoldOut ? 'SOLD OUT' : 'LEFT TODAY'}
       </p>
 
       {/* Progress Bar */}
@@ -95,7 +95,7 @@ export default function InventoryBox() {
       <p className="text-neutral-500 text-sm leading-relaxed mt-4">
         {PRE_LAUNCH_MODE
           ? "We haven't launched yet — the numbers above show how each day's drop will work. Join the waitlist to get notified the moment we go live."
-          : 'Inventory updates are synced manually based on live kitchen preparation, Swiggy and Zomato orders.'}
+          : 'The plate count is updated by hand from what the kitchen has really made and sold.'}
       </p>
     </div>
   );

@@ -81,9 +81,9 @@ export default function WaitlistForm() {
     <>
       {/* Real signup count, shown only once it is a meaningful number */}
       {liveCount >= 10 && (
-        <div className="inline-flex items-center gap-2 mb-8 border border-white/10 bg-white/5 px-4 py-2 text-xs font-mono tracking-widest text-white/70">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse shadow-[0_0_8px_#D4FF3F]" />
-          <span><strong className="text-accent">{liveCount}</strong> PEOPLE ON THE WAITLIST</span>
+        <div className="inline-flex items-center gap-2 mb-8 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-wide text-white/70">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span><strong className="text-saffron">{liveCount}</strong> people on the waitlist</span>
         </div>
       )}
 
@@ -98,9 +98,9 @@ export default function WaitlistForm() {
             placeholder={placeholder}
             autoComplete={autoComplete}
             required
-            className="w-full px-5 py-4 bg-black text-accent font-mono text-xs tracking-widest outline-none border border-white/10
-              focus:border-accent focus:bg-accent/5 focus:shadow-[0_0_15px_rgba(212,255,63,0.15)]
-              transition-all placeholder:text-white/30 rounded-none"
+            className="w-full px-5 py-4 bg-black/40 text-[#F5F1E8] text-sm outline-none border border-white/15
+              focus:border-saffron focus:bg-saffron/5
+              transition-all placeholder:text-white/35 rounded-xl"
           />
         ))}
 
@@ -122,7 +122,7 @@ export default function WaitlistForm() {
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
             required
-            className="mt-0.5 accent-[#D4FF3F]"
+            className="mt-0.5 accent-[#F2A93B]"
           />
           <span>
             I agree to receive launch updates and offers from Only42Biryani on WhatsApp, SMS and email. I can opt out at any time.{' '}
@@ -130,17 +130,17 @@ export default function WaitlistForm() {
           </span>
         </label>
 
-        {error && <p role="alert" className="text-red-500 text-xs font-mono mt-[-8px] text-left">{error}</p>}
+        {error && <p role="alert" className="text-red-400 text-sm mt-[-8px] text-left">{error}</p>}
 
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 font-mono font-bold text-xs text-black tracking-widest uppercase mt-2
-            bg-accent border border-accent transition-all duration-300
-            hover:bg-accent/80 hover:shadow-[0_0_30px_rgba(212,255,63,0.3)]
+          className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide mt-2
+            bg-accent transition-all duration-300
+            hover:bg-white hover:shadow-[0_8px_30px_rgba(212,255,63,0.25)]
             disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:shadow-none"
         >
-          {loading ? 'SAVING...' : 'JOIN THE WAITLIST'}
+          {loading ? 'Saving...' : 'Join the waitlist'}
         </button>
       </form>
 
@@ -151,21 +151,21 @@ export default function WaitlistForm() {
           onClick={() => setShowModal(false)}
         >
           <div
-            className="hud-box p-8 sm:p-12 max-w-md w-[90%] text-center shadow-[0_0_50px_rgba(212,255,63,0.1)] animate-modal-appear"
+            className="hud-box p-8 sm:p-12 max-w-md w-[90%] text-center shadow-[0_0_60px_rgba(242,169,59,0.12)] animate-modal-appear"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="w-16 h-16 border border-accent bg-accent/10 text-accent flex items-center justify-center
-              text-2xl font-mono mx-auto mb-6 shadow-[0_0_20px_rgba(212,255,63,0.2)]">
+            <div className="w-16 h-16 rounded-full border border-saffron/50 bg-saffron/10 text-saffron flex items-center justify-center
+              text-2xl mx-auto mb-6">
               ✓
             </div>
-            <h3 className="font-grotesk text-2xl tracking-widest uppercase mb-3 text-white">YOU&apos;RE ON THE LIST</h3>
+            <h3 className="font-grotesk font-extrabold text-3xl tracking-tight mb-3 text-[#F5F1E8]">You&apos;re on the list</h3>
             <p className="text-white/60 text-sm leading-relaxed mb-6">
               We&apos;ll message you the moment the day&apos;s 42 plates go live. Know someone who loves real Hyderabadi biryani? Bring them in.
             </p>
             <ShareFollow className="justify-center mb-6" />
             <button
               onClick={() => setShowModal(false)}
-              className="text-white/50 font-mono text-xs tracking-widest uppercase hover:text-white transition-colors"
+              className="text-white/55 text-sm hover:text-white transition-colors"
             >
               Close
             </button>
