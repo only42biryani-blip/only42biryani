@@ -8,7 +8,7 @@ const DESCRIPTION =
 // included; phone, area and price appear automatically once they are set in lib/config.js.
 export default function JsonLd({ launched }) {
   const businessId = `${SITE_URL}/#business`;
-  const images = [`${SITE_URL}/images/chicken-dum-biryani-hero.jpg`, `${SITE_URL}/images/chicken-dum-biryani-portrait.jpg`];
+  const images = [`${SITE_URL}/images/biryani-takeaway-box.jpg`, `${SITE_URL}/images/only42-packaging.jpg`];
 
   const menuItem = {
     '@type': 'MenuItem',

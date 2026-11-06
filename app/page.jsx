@@ -1,9 +1,11 @@
-import Image from 'next/image';
 import InventoryBox from '@/components/InventoryBox';
 import TiltCard from '@/components/TiltCard';
 import WaitlistForm from '@/components/WaitlistForm';
 import Marquee from '@/components/Marquee';
 import BorderBeam from '@/components/BorderBeam';
+import AdVideo from '@/components/AdVideo';
+import HeaderLogo from '@/components/HeaderLogo';
+import PhotoGallery from '@/components/PhotoGallery';
 import StatusProvider from '@/components/StatusProvider';
 import LaunchBanner from '@/components/LaunchBanner';
 import HeroCtas from '@/components/HeroCtas';
@@ -22,6 +24,20 @@ const manifesto = [
   { title: 'Zero frozen gravy', body: 'Fresh masala. Fresh chicken. Fresh dum. Every single day.' },
   { title: 'One dish only', body: 'One recipe. One process. One standard. We make Hyderabadi chicken dum biryani and nothing else.' },
   { title: 'Counted by hand', body: 'The plate count is updated by us, so it always reflects what the kitchen has really made.' },
+];
+
+const heroSlides = [
+  {
+    src: '/images/only42-packaging.jpg',
+    alt: 'Only42Biryani takeaway box and paper bag with the Only 42 Biryani logo, beside a bowl of raita',
+    position: 'center 60%',
+    priority: true,
+  },
+  {
+    src: '/images/biryani-takeaway-box.jpg',
+    alt: 'Chicken dum biryani with fried onions and fresh mint in an open takeaway box, with a cup of raita',
+    position: '45% center',
+  },
 ];
 
 export const metadata = {
@@ -43,25 +59,7 @@ export default async function HomePage() {
       {/* Cyberpunk Header */}
       <header className="absolute top-10 w-full z-[1000] border-b border-white/[0.05] bg-[#0c0906]/85 backdrop-blur-xl">
         <div className="max-w-[1400px] mx-auto px-6 h-[90px] flex items-center justify-between">
-            {/* Cyberpunk Logo with Laser Ring */}
-            <div className="relative flex items-center justify-center w-[86px] h-[86px] group cursor-pointer rounded-full">
-              {/* Crisp SVG Laser Ring */}
-              <svg className="absolute inset-0 w-full h-full animate-spin" style={{ animationDuration: '4s' }} viewBox="0 0 100 100">
-                {/* Moving laser segment without extra glow */}
-                <circle cx="50" cy="50" r="49" fill="none" stroke="#F2A93B" strokeWidth="2" strokeLinecap="round" 
-                  strokeDasharray="40 270" />
-              </svg>
-              {/* Solid black background */}
-              <div className="absolute inset-[2px] rounded-full bg-[#0c0906] z-0" />
-              
-              <Image 
-                src="/images/favicon.png" 
-                alt="Only42Biryani Logo" 
-                width={82} 
-                height={82}
-                className="relative z-10 object-contain" 
-              />
-            </div>
+            <HeaderLogo />
           
           <div className="flex items-center gap-6">
             <span className="hidden md:flex items-center gap-2 text-xs text-white/60 tracking-wide">
@@ -81,10 +79,10 @@ export default async function HomePage() {
       <main className="pt-[170px] md:pt-[190px] pb-24 px-6 max-w-[1400px] mx-auto min-h-screen flex flex-col gap-6">
         
         {/* HERO HUD GRID */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch min-h-[600px]">
+        <section className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-stretch xl:min-h-[600px]">
           
           {/* Main Title Block */}
-          <div className="lg:col-span-8 hud-box p-8 md:p-12 flex flex-col justify-start md:justify-center relative group overflow-hidden">
+          <div className="xl:col-span-7 hud-box p-8 md:p-12 flex flex-col justify-start md:justify-center relative group overflow-hidden">
             <BorderBeam size={200} duration={12} borderWidth={2} colorFrom="rgba(242,169,59,0.8)" />
             
             <div className="inline-flex items-center gap-2 mb-6 md:mb-8 w-fit rounded-full border border-saffron/30 bg-saffron/10 px-4 py-2 text-[11px] md:text-xs font-semibold tracking-wide text-saffron">
@@ -92,7 +90,7 @@ export default async function HomePage() {
             </div>
 
             <h1 className="font-grotesk font-extrabold text-[34px] sm:text-6xl md:text-7xl lg:text-[68px] xl:text-[76px] leading-[1.04] tracking-tight mb-6">
-              <span className="text-[#F5F1E8] block">Hyderabadi chicken dum biryani.</span>
+              <span className="text-[#F5F1E8] block">Chicken dum biryani.</span>
               <span className="text-saffron block">42 plates a day.</span>
             </h1>
 
@@ -109,19 +107,8 @@ export default async function HomePage() {
           </div>
 
           {/* Image Block */}
-          <div className="lg:col-span-4 hud-box p-2 relative min-h-[400px] lg:min-h-0">
-            <div className="absolute inset-2 bg-black z-10 overflow-hidden rounded-[16px]">
-              <Image
-                src="/images/chicken-dum-biryani-portrait.jpg"
-                alt="Hyderabad chicken dum biryani on a silver plate beside a copper handi"
-                fill
-                sizes="(min-width: 1024px) 33vw, 100vw"
-                className="object-cover brightness-[0.95] contrast-[1.05] saturate-[1.12]"
-                priority
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 pointer-events-none" />
-              
-            </div>
+          <div className="xl:col-span-5 hud-box p-2 relative min-h-[400px] xl:min-h-0">
+            <PhotoGallery slides={heroSlides} sizes="(min-width: 1024px) 33vw, 100vw" label="Photos of the Only42Biryani chicken dum biryani" />
           </div>
         </section>
 
@@ -129,7 +116,7 @@ export default async function HomePage() {
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
           {/* Inventory HUD */}
-          <div className="lg:col-span-4 hud-box p-8 relative">
+          <div className="lg:col-span-5 hud-box p-8 relative">
             <BorderBeam size={150} duration={10} borderWidth={2} colorFrom="rgba(242,169,59,0.5)" />
             <div className="text-xs font-semibold text-saffron tracking-widest uppercase mb-6 pb-2 border-b border-saffron/20">
               Today&apos;s kitchen
@@ -138,7 +125,7 @@ export default async function HomePage() {
           </div>
 
           {/* Marquee Strip */}
-          <div className="lg:col-span-8 hud-box p-8 flex items-center">
+          <div className="lg:col-span-7 hud-box p-8 flex items-center">
             <Marquee items={["ONLY 42 PLATES", "ZERO FROZEN GRAVY", "FRESH HANDI", "HYDERABAD DUM"]} speed={20} className="opacity-80" />
           </div>
         </section>
@@ -165,18 +152,14 @@ export default async function HomePage() {
 
         {/* STATEMENT & IMAGE ROW */}
         <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-12">
-          <div className="lg:col-span-6 hud-box p-2 relative h-[500px]">
+          <div className="lg:col-span-6 hud-box p-2 relative aspect-video lg:self-center">
             <div className="absolute inset-2 bg-black z-10 overflow-hidden rounded-[16px]">
-              <Image
-                src="/images/chicken-dum-biryani-hero.jpg"
-                alt="Copper handi and a plate of chicken dum biryani with raita and sliced onions"
-                fill
-                sizes="(min-width: 1024px) 50vw, 100vw"
-                className="object-cover brightness-[0.95]"
+              <AdVideo
+                src="/video/only42-ad.mp4"
+                poster="/video/only42-ad-poster.jpg"
+                label="Short film: biryani being served into a box, Only 42 plates a day"
+                className="absolute inset-0 h-full w-full object-contain"
               />
-              <div className="absolute bottom-6 right-6 bg-black/70 backdrop-blur rounded-full border border-saffron/30 text-saffron text-xs font-semibold px-5 py-2">
-                Sealed handi, slow dum
-              </div>
             </div>
           </div>
           

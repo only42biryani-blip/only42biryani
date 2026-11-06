@@ -151,6 +151,19 @@ body::before {
   100% { transform: perspective(800px) rotateY(360deg); }
 }
 
+/* Neon flicker on the header logo: only while hovered, focused or tapped */
+@keyframes neonFlicker {
+  0%, 19%, 21%, 23%, 25%, 54%, 56%, 100% { filter: drop-shadow(0 0 10px rgba(212,255,63,0.85)) brightness(1.15); }
+  20%, 24%, 55% { filter: none; }
+  22% { filter: drop-shadow(0 0 3px rgba(212,255,63,0.3)); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .logo-neon.is-lit img { animation: neonFlicker 0.7s ease-out 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .logo-neon.is-lit img { filter: drop-shadow(0 0 10px rgba(212,255,63,0.85)) brightness(1.15); }
+}
+
 /* Cards: soft warm panels instead of terminal boxes */
 .hud-box {
   background: linear-gradient(180deg, #15100c, #0f0b08);
@@ -170,3 +183,7 @@ body::before {
   justify-content: center;
   animation: loaderHide 1.8s ease forwards;
 }
+
+/* Hide scrollbars on swipe galleries */
+.no-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+.no-scrollbar::-webkit-scrollbar { display: none; }

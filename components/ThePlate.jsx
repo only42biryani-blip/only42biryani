@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import AdVideo from './AdVideo';
 import { PLATE } from '@/lib/config';
 
 const rows = [
@@ -10,14 +10,13 @@ const rows = [
 export default function ThePlate() {
   return (
     <section id="the-plate" className="grid grid-cols-1 lg:grid-cols-12 gap-6 pt-12">
-      <div className="lg:col-span-6 hud-box p-2 relative h-[420px] lg:h-auto lg:min-h-[420px]">
-        <div className="absolute inset-2 overflow-hidden rounded-[16px]">
-          <Image
-            src="/images/chicken-dum-biryani-hero.jpg"
-            alt="Chicken dum biryani served on a silver plate with raita, onions and a copper handi"
-            fill
-            sizes="(min-width: 1024px) 50vw, 100vw"
-            className="object-cover"
+      <div className="lg:col-span-6 hud-box p-2 relative aspect-video lg:self-center">
+        <div className="absolute inset-2 z-10 overflow-hidden rounded-[16px] bg-black">
+          <AdVideo
+            src="/video/only42-pack.mp4"
+            poster="/video/only42-pack-poster.jpg"
+            label="Only42Biryani takeaway box, paper bag and raita"
+            className="absolute inset-0 h-full w-full object-cover"
           />
         </div>
       </div>
