@@ -75,6 +75,8 @@ export default function AdminDashboard() {
   const [toasts, setToasts] = useState([]);
 
   const [launch, setLaunch] = useState({ launched: false, launchAt: '', banner: '' });
+  const [published, setPublished] = useState({ launched: false, launchAt: '', banner: '' }); // what is saved in the database
+  const dateRef = useRef(null);
   const [launchState, setLaunchState] = useState('loading'); // loading | ready | missing
   const [savingLaunch, setSavingLaunch] = useState(false);
 
@@ -167,7 +169,9 @@ export default function AdminDashboard() {
         setLaunchState('missing');
         return;
       }
-      setLaunch({ launched: !!data.launched, launchAt: toLocalInput(data.launch_at), banner: data.banner || '' });
+      const saved = { launched: !!data.launched, launchAt: toLocalInput(data.launch_at), banner: data.banner || '' };
+      setLaunch(saved);
+      setPublished(saved);
       setLaunchState('ready');
     });
     return () => {
@@ -200,16 +204,22 @@ export default function AdminDashboard() {
     }
   }
 
-  async function saveLaunch() {
-    const wasLive = launch.launched;
-    if (wasLive && !window.confirm('Launch mode is ON. Save these settings?')) return;
+  // Writes the launch settings to the database. `overrides` lets the Go live button save
+  // the new launch state right away instead of leaving it as an unsaved change.
+  async function saveLaunch(overrides = {}, { skipConfirm = false } = {}) {
+    if (dateRef.current?.validity.badInput) {
+      addToast('Pick both a date and a time for the launch, or clear the date.', 'error');
+      return;
+    }
+    const next = { ...launch, ...overrides };
+    if (!skipConfirm && next.launched && !window.confirm('The site is in launch (LIVE) mode. Save these settings?')) return;
     setSavingLaunch(true);
     const { data, error } = await supabase
       .from('settings')
       .update({
-        launched: launch.launched,
-        launch_at: launch.launchAt ? new Date(launch.launchAt).toISOString() : null,
-        banner: launch.banner.trim() || null,
+        launched: next.launched,
+        launch_at: next.launchAt ? new Date(next.launchAt).toISOString() : null,
+        banner: next.banner.trim() || null,
       })
       .eq('id', 1)
       .select();
@@ -218,16 +228,20 @@ export default function AdminDashboard() {
       addToast('Could not save launch settings', 'error');
       return;
     }
-    addToast('Saved. The public site updates within about a minute.', 'success');
+    setLaunch(next);
+    setPublished(next);
+    addToast(next.launched ? 'Saved: the site is LIVE (updates within about a minute).' : 'Saved: the site is in pre-launch mode.', 'success');
   }
 
   function toggleLaunched() {
-    const next = !launch.launched;
+    const next = !published.launched;
     const text = next
-      ? 'Go LIVE? Visitors will see real Order buttons and the live plate count.'
+      ? 'Go LIVE now? Visitors will immediately see real Order buttons and the live plate count.'
       : 'Switch back to pre-launch mode? Order buttons will show "Launching soon".';
-    if (window.confirm(text)) setLaunch((l) => ({ ...l, launched: next }));
+    if (window.confirm(text)) saveLaunch({ launched: next }, { skipConfirm: true });
   }
+
+  const launchDirty = launch.launchAt !== published.launchAt || launch.banner !== published.banner;
 
   // Waitlist (admin only, enforced by the database)
   async function loadWaitlist() {
@@ -403,8 +417,8 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-grotesk text-lg font-bold">Launch controls</h3>
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full border tracking-widest
-              ${launch.launched ? 'text-accent border-accent/30 bg-accent/10' : 'text-neutral-400 border-white/10'}`}>
-              {launch.launched ? 'LIVE' : 'PRE-LAUNCH'}
+              ${published.launched ? 'text-accent border-accent/30 bg-accent/10' : 'text-neutral-400 border-white/10'}`}>
+              {published.launched ? 'LIVE' : 'PRE-LAUNCH'}
             </span>
           </div>
 
@@ -415,16 +429,17 @@ export default function AdminDashboard() {
             </p>
           ) : (
             <div className="grid gap-3">
-              <button onClick={toggleLaunched} disabled={launchState !== 'ready'}
-                className={`py-3 text-sm ${launch.launched ? ghostBtn : 'rounded-xl bg-accent text-black font-bold hover:bg-white disabled:opacity-50 transition-all'}`}>
-                {launch.launched ? 'Switch back to pre-launch' : 'Go live (launch mode)'}
+              <button onClick={toggleLaunched} disabled={launchState !== 'ready' || savingLaunch}
+                className={`py-3 text-sm ${published.launched ? ghostBtn : 'rounded-xl bg-accent text-black font-bold hover:bg-white disabled:opacity-50 transition-all'}`}>
+                {published.launched ? 'Switch back to pre-launch (saves now)' : 'Go live now (saves immediately)'}
               </button>
 
               <label className="grid gap-1.5 text-xs text-neutral-400">
-                Launch date and time (shows a countdown before launch)
-                <input type="datetime-local" value={launch.launchAt}
+                Launch date and time (shows a countdown while in pre-launch mode)
+                <input ref={dateRef} type="datetime-local" value={launch.launchAt}
                   onChange={(e) => setLaunch((l) => ({ ...l, launchAt: e.target.value }))}
                   className={input} />
+                <span className="text-[11px] text-neutral-500">Pick both the date and the time. A date without a time is not saved. This does not switch the site live by itself.</span>
               </label>
 
               <label className="grid gap-1.5 text-xs text-neutral-400">
@@ -434,9 +449,9 @@ export default function AdminDashboard() {
                   className={input} />
               </label>
 
-              <button onClick={saveLaunch} disabled={savingLaunch || launchState !== 'ready'}
-                className={`py-3 text-sm ${ghostBtn}`}>
-                {savingLaunch ? 'Saving...' : 'Save launch settings'}
+              <button onClick={() => saveLaunch()} disabled={savingLaunch || launchState !== 'ready'}
+                className={`py-3 text-sm ${launchDirty ? 'rounded-xl bg-accent text-black font-bold hover:bg-white transition-all' : ghostBtn}`}>
+                {savingLaunch ? 'Saving...' : launchDirty ? 'Save launch date / banner (unsaved changes)' : 'Save launch date / banner'}
               </button>
             </div>
           )}
