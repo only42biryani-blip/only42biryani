@@ -1,7 +1,13 @@
 import AdVideo from './AdVideo';
 import { PLATE } from '@/lib/config';
 
+// What goes in the box: facts we always show. Price, portion and spice are added
+// automatically once they are set in lib/config.js.
 const rows = [
+  { label: 'Chicken', value: 'Fresh boneless chicken breast (Sneha chicken)' },
+  { label: 'Rice', value: 'Medium-grain rice' },
+  { label: 'Cooked', value: 'Slow dum in a sealed handi' },
+  { label: 'Packed in', value: 'Sugarcane bagasse box' },
   { label: 'Price', value: PLATE.price },
   { label: 'Portion', value: PLATE.portion },
   { label: 'Spice level', value: PLATE.spice },
@@ -27,19 +33,17 @@ export default function ThePlate() {
           Chicken dum biryani
         </h2>
         <p className="text-white/70 text-sm md:text-base leading-relaxed mb-8">
-          Long-grain basmati rice, slow dum-cooked chicken and sealed handi aroma, prepared fresh every day in a single batch of 42 plates.
+          Fresh boneless chicken breast and medium-grain rice, slow dum-cooked in a sealed handi and prepared fresh every day in a single batch of 42 plates.
         </p>
 
-        {rows.length > 0 && (
-          <dl className="grid gap-3 border-t border-white/10 pt-6">
-            {rows.map((r) => (
-              <div key={r.label} className="flex justify-between gap-4 text-sm">
-                <dt className="text-white/50">{r.label}</dt>
-                <dd className="text-white font-bold">{r.value}</dd>
-              </div>
-            ))}
-          </dl>
-        )}
+        <dl className="grid gap-3 border-t border-white/10 pt-6">
+          {rows.map((r) => (
+            <div key={r.label} className="flex justify-between gap-6 text-sm">
+              <dt className="shrink-0 text-white/50">{r.label}</dt>
+              <dd className="text-right font-bold text-[#F5F1E8]">{r.value}</dd>
+            </div>
+          ))}
+        </dl>
       </div>
     </section>
   );

@@ -28,15 +28,15 @@ const manifesto = [
 
 const heroSlides = [
   {
-    src: '/images/only42-packaging.jpg',
-    alt: 'Only42Biryani takeaway box and paper bag with the Only 42 Biryani logo, beside a bowl of raita',
-    position: 'center 60%',
+    src: '/images/biryani-box-and-bag.jpg',
+    alt: 'Open takeaway box of Hyderabadi chicken dum biryani with fried onions and mint, beside a cup of raita and an Only 42 Biryani paper bag',
+    position: '40% 68%',
     priority: true,
   },
   {
-    src: '/images/biryani-takeaway-box.jpg',
-    alt: 'Chicken dum biryani with fried onions and fresh mint in an open takeaway box, with a cup of raita',
-    position: '45% center',
+    src: '/images/only42-packaging.jpg',
+    alt: 'Only42Biryani takeaway box and paper bag with the Only 42 Biryani logo, beside a bowl of raita',
+    position: 'center 60%',
   },
 ];
 

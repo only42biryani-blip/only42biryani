@@ -8,13 +8,16 @@ const DESCRIPTION =
 // included; phone, area and price appear automatically once they are set in lib/config.js.
 export default function JsonLd({ launched }) {
   const businessId = `${SITE_URL}/#business`;
-  const images = [`${SITE_URL}/images/biryani-takeaway-box.jpg`, `${SITE_URL}/images/only42-packaging.jpg`];
+  const images = [
+    `${SITE_URL}/images/biryani-box-and-bag.jpg`,
+    `${SITE_URL}/images/only42-packaging.jpg`,
+  ];
 
   const menuItem = {
     '@type': 'MenuItem',
     name: 'Chicken Dum Biryani',
     description:
-      'Long-grain basmati rice and chicken slow-cooked together in a sealed handi (dum), prepared fresh daily in a single batch of 42 plates.',
+      'Medium-grain rice and fresh boneless chicken breast slow-cooked in a sealed handi (dum), prepared fresh daily in a single batch of 42 plates and packed in a sugarcane bagasse box.',
     image: images[0],
     ...(PLATE.price ? { offers: { '@type': 'Offer', price: String(PLATE.price).replace(/[^\d.]/g, ''), priceCurrency: 'INR' } } : {}),
   };

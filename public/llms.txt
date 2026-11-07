@@ -3,7 +3,9 @@
 > Only42Biryani is a Hyderabad kitchen that makes one thing: Hyderabadi chicken dum biryani, cooked in a single fresh batch of 42 plates a day. When the 42 plates are gone, the kitchen stops.
 
 ## Key facts
-- Product: Hyderabadi chicken dum biryani (long-grain basmati rice and chicken slow-cooked in a sealed handi). It is the only item on the menu.
+- Product: Hyderabadi chicken dum biryani (medium-grain rice and fresh boneless chicken breast slow-cooked in a sealed handi). It is the only item on the menu.
+- Chicken: fresh boneless chicken breast, sourced from Sneha chicken.
+- Packaging: boxes made from sugarcane bagasse (the plant fibre left after sugarcane is pressed for juice).
 - Limit: 42 plates per day, one batch, no second batch, no frozen gravy.
 - City: Hyderabad, Telangana, India.
 - Ordering: through Zomato once launched. Before launch, people join the waitlist and are notified when ordering opens.
