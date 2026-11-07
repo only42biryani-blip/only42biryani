@@ -28,9 +28,9 @@ const manifesto = [
 
 const heroSlides = [
   {
-    src: '/images/biryani-box-and-bag.jpg',
+    src: '/images/biryani-box-and-bag-2.jpg',
     alt: 'Open takeaway box of Hyderabadi chicken dum biryani with fried onions and mint, beside a cup of raita and an Only 42 Biryani paper bag',
-    position: '40% 68%',
+    position: '50% 55%',
     priority: true,
   },
   {

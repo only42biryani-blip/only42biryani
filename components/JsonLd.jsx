@@ -9,7 +9,7 @@ const DESCRIPTION =
 export default function JsonLd({ launched }) {
   const businessId = `${SITE_URL}/#business`;
   const images = [
-    `${SITE_URL}/images/biryani-box-and-bag.jpg`,
+    `${SITE_URL}/images/biryani-box-and-bag-2.jpg`,
     `${SITE_URL}/images/only42-packaging.jpg`,
   ];
 
