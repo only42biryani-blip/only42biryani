@@ -54,10 +54,10 @@ export async function POST(request) {
   if (!name) return bad('Enter your name.');
   if (!PHONE_PATTERN.test(phone)) return bad('Enter a valid 10-digit mobile number.');
   if (!EMAIL_PATTERN.test(email)) return bad('Enter a valid email address.');
-  if (body.consent !== true) return bad('Please tick the box to agree to updates.');
 
   const base = { name, phone, email };
   let { error } = await supabase.from('waitlist').insert([
+    // The form shows the notice right above the button; joining is recorded as agreeing to it.
     { ...base, consent: true, consented_at: new Date().toISOString(), source },
   ]);
 

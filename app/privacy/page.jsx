@@ -14,7 +14,7 @@ const sections = [
   },
   {
     title: 'What we collect',
-    body: 'When you join the waitlist we collect your name, mobile number and email address. If you arrive through a tagged link (for example from Instagram) we also note which link it was. When you tick the consent box we record that you agreed and when.',
+    body: 'When you join the waitlist we collect your name, mobile number and email address. If you arrive through a tagged link (for example from Instagram) we also note which link it was. When you join, we record that you agreed to the notice shown under the form (launch updates and daily drop alerts by WhatsApp, SMS and email) and when. Reply STOP to any message to opt out.',
   },
   {
     title: 'Why we collect it',

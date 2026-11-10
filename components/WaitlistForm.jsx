@@ -27,7 +27,6 @@ const fields = [
 export default function WaitlistForm() {
   const [values, setValues] = useState({ name: '', phone: '', email: '' });
   const [trap, setTrap] = useState('');
-  const [consent, setConsent] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
@@ -59,7 +58,7 @@ export default function WaitlistForm() {
       const res = await fetch('/api/waitlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...values, consent, source, website: trap }),
+        body: JSON.stringify({ ...values, source, website: trap }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -69,7 +68,6 @@ export default function WaitlistForm() {
       setLiveCount((c) => (c > 0 ? c + 1 : c));
       setShowModal(true);
       setValues({ name: '', phone: '', email: '' });
-      setConsent(false);
     } catch {
       setError('Could not reach the server. Check your connection and try again.');
     } finally {
@@ -116,19 +114,11 @@ export default function WaitlistForm() {
           className="absolute left-[-9999px] w-px h-px opacity-0"
         />
 
-        <label className="flex items-start gap-3 text-left text-xs text-white/60 leading-relaxed cursor-pointer">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            required
-            className="mt-0.5 accent-[#F2A93B]"
-          />
-          <span>
-            I agree to receive launch updates and offers from Only42Biryani on WhatsApp, SMS and email. I can opt out at any time.{' '}
-            <Link href="/privacy" className="underline hover:text-accent" target="_blank" rel="noopener noreferrer">Privacy policy</Link>
-          </span>
-        </label>
+        <p className="text-left text-xs text-white/60 leading-relaxed">
+          By joining, you agree to get launch updates and daily drop alerts from Only42Biryani on WhatsApp, SMS and email.
+          Reply STOP any time to opt out.{' '}
+          <Link href="/privacy" className="underline hover:text-accent" target="_blank" rel="noopener noreferrer">Privacy policy</Link>
+        </p>
 
         {error && <p role="alert" className="text-red-400 text-sm mt-[-8px] text-left">{error}</p>}
 
