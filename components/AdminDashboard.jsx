@@ -79,10 +79,16 @@ export default function AdminDashboard() {
   const dateRef = useRef(null);
   const [launchState, setLaunchState] = useState('loading'); // loading | ready | missing
   const [savingLaunch, setSavingLaunch] = useState(false);
+  const [clock, setClock] = useState(() => Date.now()); // lets the LIVE badge flip when the launch time passes
+  useEffect(() => {
+    const id = setInterval(() => setClock(Date.now()), 15000);
+    return () => clearInterval(id);
+  }, []);
 
   const [showWaitlist, setShowWaitlist] = useState(false);
   const [waitlist, setWaitlist] = useState([]);
   const [waitlistState, setWaitlistState] = useState('idle');
+  const [dbTotal, setDbTotal] = useState(null); // what the database says the total is, to spot missing rows
   const [query, setQuery] = useState('');
   const [waMessage, setWaMessage] = useState(
     `Hi {name}! Only42Biryani is live today. Only 42 plates, order on Zomato before they're gone: ${ZOMATO_URL}`
@@ -212,6 +218,8 @@ export default function AdminDashboard() {
       return;
     }
     const next = { ...launch, ...overrides };
+    if (!skipConfirm && !next.launched && next.launchAt && new Date(next.launchAt).getTime() <= Date.now() &&
+      !window.confirm('That launch time has already passed, so the site will go LIVE immediately. Save?')) return;
     if (!skipConfirm && next.launched && !window.confirm('The site is in launch (LIVE) mode. Save these settings?')) return;
     setSavingLaunch(true);
     const { data, error } = await supabase
@@ -230,29 +238,51 @@ export default function AdminDashboard() {
     }
     setLaunch(next);
     setPublished(next);
-    addToast(next.launched ? 'Saved: the site is LIVE (updates within about a minute).' : 'Saved: the site is in pre-launch mode.', 'success');
+    const nowLive = next.launched || (next.launchAt && new Date(next.launchAt).getTime() <= Date.now());
+    addToast(nowLive
+      ? 'Saved: the site is LIVE (updates within about a minute).'
+      : next.launchAt
+        ? 'Saved: the site is in pre-launch mode and will go live by itself at the launch time.'
+        : 'Saved: the site is in pre-launch mode.', 'success');
   }
 
   function toggleLaunched() {
-    const next = !published.launched;
+    const next = !isLive;
     const text = next
       ? 'Go LIVE now? Visitors will immediately see real Order buttons and the live plate count.'
-      : 'Switch back to pre-launch mode? Order buttons will show "Launching soon".';
-    if (window.confirm(text)) saveLaunch({ launched: next }, { skipConfirm: true });
+      : 'Switch back to pre-launch mode? Order buttons will show "Launching soon". The launch time is cleared so the site does not go live again by itself.';
+    // Going back to pre-launch also clears the launch time; otherwise a past time would make it live again.
+    if (window.confirm(text)) saveLaunch(next ? { launched: true } : { launched: false, launchAt: '' }, { skipConfirm: true });
   }
 
   const launchDirty = launch.launchAt !== published.launchAt || launch.banner !== published.banner;
+  // Live = "Go live now" was pressed, or the saved launch time has already passed (automatic launch).
+  const launchTime = published.launchAt ? new Date(published.launchAt).getTime() : NaN;
+  const autoLive = !published.launched && !Number.isNaN(launchTime) && launchTime <= clock;
+  const isLive = published.launched || autoLive;
 
   // Waitlist (admin only, enforced by the database)
   async function loadWaitlist() {
     setWaitlistState('loading');
-    const { data, error } = await supabase.from('waitlist').select('*');
-    if (error) {
-      setWaitlistState('error');
-      addToast('Could not load waitlist', 'error');
-      return;
+    const PAGE = 1000; // the database returns at most 1000 rows per request, so read in pages
+    const rows = [];
+    for (let from = 0; ; from += PAGE) {
+      const { data, error } = await supabase
+        .from('waitlist').select('*')
+        .order('created_at', { ascending: false, nullsFirst: false })
+        .order('id', { ascending: false })
+        .range(from, from + PAGE - 1);
+      if (error) {
+        setWaitlistState('error');
+        addToast('Could not load waitlist', 'error');
+        return;
+      }
+      rows.push(...(data || []));
+      if (!data || data.length < PAGE) break;
     }
-    setWaitlist([...(data || [])].reverse());
+    setWaitlist(rows);
+    const { data: total } = await supabase.rpc('waitlist_count');
+    setDbTotal(total === null || total === undefined ? null : Number(total));
     setWaitlistState('ready');
   }
 
@@ -290,20 +320,19 @@ export default function AdminDashboard() {
       addToast('No waitlist data to export', 'error');
       return;
     }
+    // Every column the database has, known ones first, so nothing is left out of the export.
+    const known = ['id', 'name', 'phone', 'email', 'created_at', 'consent', 'consented_at', 'source'];
+    const extra = [...new Set(waitlist.flatMap((e) => Object.keys(e)))].filter((k) => !known.includes(k));
+    const cols = [...known, ...extra];
     const rows = [
-      ['Name', 'Phone', 'Email', 'Joined', 'Consent', 'Source'],
-      ...waitlist.map((e) => [
-        e.name, e.phone, e.email,
-        e.created_at ? new Date(e.created_at).toISOString() : '',
-        e.consent === true ? 'yes' : e.consent === false ? 'no' : '',
-        e.source,
-      ]),
+      cols,
+      ...waitlist.map((e) => cols.map((c) => (e[c] === null || e[c] === undefined ? '' : e[c]))),
     ];
-    const csv = rows.map((r) => r.map(csvCell).join(',')).join('\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const csv = '\uFEFF' + rows.map((r) => r.map(csvCell).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'only42biryani-waitlist.csv';
+    a.download = `only42biryani-waitlist-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -315,8 +344,18 @@ export default function AdminDashboard() {
 
   const q = query.trim().toLowerCase();
   const visible = q
-    ? waitlist.filter((e) => [e.name, e.phone, e.email].some((v) => String(v || '').toLowerCase().includes(q)))
+    ? waitlist.filter((e) => [e.name, e.phone, e.email, e.source].some((v) => String(v || '').toLowerCase().includes(q)))
     : waitlist;
+  const todayStr = new Date().toLocaleDateString('en-IN');
+  const stats = {
+    total: waitlist.length,
+    consented: waitlist.filter((e) => e.consent === true).length,
+    declined: waitlist.filter((e) => e.consent === false).length,
+    older: waitlist.filter((e) => e.consent === null || e.consent === undefined).length,
+    today: waitlist.filter((e) => e.created_at && new Date(e.created_at).toLocaleDateString('en-IN') === todayStr).length,
+  };
+  const KNOWN = ['id', 'name', 'phone', 'email', 'created_at', 'consent', 'consented_at', 'source'];
+  const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
   const toastLayer = (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col gap-2.5 z-[9999] pointer-events-none w-[calc(100%-48px)] max-w-xs">
@@ -417,8 +456,8 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-grotesk text-lg font-bold">Launch controls</h3>
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full border tracking-widest
-              ${published.launched ? 'text-accent border-accent/30 bg-accent/10' : 'text-neutral-400 border-white/10'}`}>
-              {published.launched ? 'LIVE' : 'PRE-LAUNCH'}
+              ${isLive ? 'text-accent border-accent/30 bg-accent/10' : 'text-neutral-400 border-white/10'}`}>
+              {isLive ? 'LIVE' : published.launchAt ? 'PRE-LAUNCH · AUTO-LIVE AT LAUNCH TIME' : 'PRE-LAUNCH'}
             </span>
           </div>
 
@@ -430,16 +469,16 @@ export default function AdminDashboard() {
           ) : (
             <div className="grid gap-3">
               <button onClick={toggleLaunched} disabled={launchState !== 'ready' || savingLaunch}
-                className={`py-3 text-sm ${published.launched ? ghostBtn : 'rounded-xl bg-accent text-black font-bold hover:bg-white disabled:opacity-50 transition-all'}`}>
-                {published.launched ? 'Switch back to pre-launch (saves now)' : 'Go live now (saves immediately)'}
+                className={`py-3 text-sm ${isLive ? ghostBtn : 'rounded-xl bg-accent text-black font-bold hover:bg-white disabled:opacity-50 transition-all'}`}>
+                {isLive ? 'Switch back to pre-launch (saves now)' : 'Go live now (saves immediately)'}
               </button>
 
               <label className="grid gap-1.5 text-xs text-neutral-400">
-                Launch date and time (shows a countdown while in pre-launch mode)
+                Launch date and time (countdown until then; the site goes live by itself at this time)
                 <input ref={dateRef} type="datetime-local" value={launch.launchAt}
                   onChange={(e) => setLaunch((l) => ({ ...l, launchAt: e.target.value }))}
                   className={input} />
-                <span className="text-[11px] text-neutral-500">Pick both the date and the time. A date without a time is not saved. This does not switch the site live by itself.</span>
+                <span className="text-[11px] text-neutral-500">Pick both the date and the time. A date without a time is not saved. To stop the automatic launch, clear this date and save.</span>
               </label>
 
               <label className="grid gap-1.5 text-xs text-neutral-400">
@@ -464,38 +503,91 @@ export default function AdminDashboard() {
 
         {showWaitlist && (
           <div className="mb-4">
+            {waitlistState === 'ready' && (
+              <div className="grid grid-cols-2 gap-2 mb-3 text-center">
+                <div className="bg-white/[0.04] border border-white/10 rounded-xl py-3 col-span-2">
+                  <div className="font-grotesk text-3xl font-bold text-accent leading-none">{stats.total}</div>
+                  <div className="text-[10px] tracking-[2px] uppercase text-neutral-400 mt-1">People on the waitlist</div>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl py-2">
+                  <div className="font-bold">{stats.today}</div>
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Joined today</div>
+                </div>
+                <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl py-2">
+                  <div className="font-bold">{stats.consented}</div>
+                  <div className="text-[10px] text-neutral-500 uppercase tracking-wider">Consent recorded</div>
+                </div>
+                {(stats.older > 0 || stats.declined > 0) && (
+                  <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl py-2 col-span-2 text-[11px] text-neutral-400">
+                    {stats.older > 0 && `${stats.older} joined before the consent box existed`}
+                    {stats.older > 0 && stats.declined > 0 && ' · '}
+                    {stats.declined > 0 && `${stats.declined} without consent (do not message)`}
+                  </div>
+                )}
+                {dbTotal !== null && dbTotal !== stats.total && (
+                  <div className="col-span-2 text-[11px] text-red-400 border border-red-500/30 rounded-xl py-2 px-3">
+                    Warning: the database counts {dbTotal} people but only {stats.total} loaded. Reload; if it stays, check the Supabase admin policy.
+                  </div>
+                )}
+              </div>
+            )}
+
             <div className="flex items-center justify-between gap-3 mb-3 text-xs text-neutral-400">
               <span>
-                {waitlistState === 'loading' && 'Loading...'}
+                {waitlistState === 'loading' && 'Loading every signup...'}
                 {waitlistState === 'error' && 'Failed to load waitlist'}
-                {waitlistState === 'ready' && `${visible.length} of ${waitlist.length} shown`}
+                {waitlistState === 'ready' && `${visible.length} of ${waitlist.length} shown · newest first`}
               </span>
-              <button onClick={exportCsv} className={`px-3 py-2 text-xs ${ghostBtn} rounded-lg`}>Export CSV</button>
+              <div className="flex gap-2">
+                <button onClick={loadWaitlist} className={`px-3 py-2 text-xs ${ghostBtn} rounded-lg`}>Refresh</button>
+                <button onClick={exportCsv} className={`px-3 py-2 text-xs ${ghostBtn} rounded-lg`}>Export CSV</button>
+              </div>
             </div>
 
             <input type="search" value={query} onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, phone or email" className={`${input} mb-3`} />
+              placeholder="Search name, phone, email or source" className={`${input} mb-3`} />
 
             <label className="grid gap-1.5 text-xs text-neutral-400 mb-3">
               WhatsApp message ({'{name}'} is replaced with each person&apos;s name)
               <textarea value={waMessage} onChange={(e) => setWaMessage(e.target.value)} rows={3} className={input} />
             </label>
 
-            <div className="max-h-96 overflow-y-auto flex flex-col gap-2">
+            <div className="max-h-[70vh] overflow-y-auto flex flex-col gap-2">
               {visible.map((e, i) => {
                 const noConsent = e.consent === false;
                 const link = `https://wa.me/${waNumber(e.phone)}?text=${encodeURIComponent(waMessage.replaceAll('{name}', e.name || 'there'))}`;
+                const extras = Object.entries(e).filter(([k, v]) => !KNOWN.includes(k) && v !== null && v !== undefined && v !== '');
+                const number = waitlist.length - waitlist.indexOf(e); // 1 = first person who joined
                 return (
                   <div key={e.id ?? i} className="bg-white/[0.03] border border-white/[0.06] rounded-xl px-4 py-3 text-sm">
                     <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="font-bold truncate">{e.name || '—'}</div>
-                        <div className="text-neutral-500 text-xs mt-0.5 break-all">{e.phone || '—'} · {e.email || '—'}</div>
-                        <div className="text-neutral-600 text-[11px] mt-1">
-                          {e.created_at ? new Date(e.created_at).toLocaleDateString('en-IN') : 'date unknown'}
-                          {e.source ? ` · via ${e.source}` : ''}
-                          {e.consent === true ? ' · consent recorded' : e.consent === false ? ' · NO consent' : ' · joined before consent box'}
+                      <div className="min-w-0 w-full">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <div className="font-bold truncate">{e.name || '—'}</div>
+                          <div className="text-neutral-600 text-[11px] shrink-0">#{number}</div>
                         </div>
+                        <dl className="mt-2 grid grid-cols-[84px_1fr] gap-x-3 gap-y-1 text-xs">
+                          <dt className="text-neutral-500">Phone</dt>
+                          <dd className="break-all">{e.phone ? <a href={`tel:${e.phone}`} className="text-white/90 hover:text-accent">{e.phone}</a> : '—'}</dd>
+                          <dt className="text-neutral-500">Email</dt>
+                          <dd className="break-all">{e.email ? <a href={`mailto:${e.email}`} className="text-white/90 hover:text-accent">{e.email}</a> : '—'}</dd>
+                          <dt className="text-neutral-500">Joined</dt>
+                          <dd>{fmtDateTime(e.created_at) || 'date unknown'}</dd>
+                          <dt className="text-neutral-500">Consent</dt>
+                          <dd className={noConsent ? 'text-red-400' : ''}>
+                            {e.consent === true
+                              ? `Yes${e.consented_at ? ` · ${fmtDateTime(e.consented_at)}` : ''}`
+                              : e.consent === false ? 'NO consent' : 'Joined before the consent box'}
+                          </dd>
+                          <dt className="text-neutral-500">Source</dt>
+                          <dd>{e.source || 'direct / not tracked'}</dd>
+                          {extras.map(([k, v]) => (
+                            <div key={k} className="contents">
+                              <dt className="text-neutral-500 capitalize">{k.replaceAll('_', ' ')}</dt>
+                              <dd className="break-all">{typeof v === 'object' ? JSON.stringify(v) : String(v)}</dd>
+                            </div>
+                          ))}
+                        </dl>
                       </div>
                       <button onClick={() => deleteEntry(e)} className="text-neutral-600 hover:text-red-500 text-xs shrink-0" aria-label="Remove entry">
                         Remove
@@ -511,6 +603,9 @@ export default function AdminDashboard() {
                   </div>
                 );
               })}
+              {waitlistState === 'ready' && visible.length === 0 && (
+                <p className="text-neutral-500 text-xs text-center py-4">{q ? 'No one matches that search.' : 'No one has joined yet.'}</p>
+              )}
             </div>
           </div>
         )}

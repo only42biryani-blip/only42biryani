@@ -28,12 +28,25 @@ export default function StatusProvider({ initial, children }) {
 
     const id = setInterval(refresh, 15000);
     document.addEventListener('visibilitychange', refresh);
+
+    // Re-check right when the scheduled launch time arrives so visitors see the live site
+    // within a second or two instead of waiting for the next poll.
+    let launchTimer;
+    const at = status.launchAt ? new Date(status.launchAt).getTime() : NaN;
+    const delay = at - Date.now();
+    if (!status.launched && delay > 0 && delay < 2147483647) {
+      launchTimer = setTimeout(() => {
+        refresh();
+        setTimeout(refresh, 3000);
+      }, delay + 1000);
+    }
     return () => {
       stopped = true;
+      clearTimeout(launchTimer);
       clearInterval(id);
       document.removeEventListener('visibilitychange', refresh);
     };
-  }, []);
+  }, [status.launchAt, status.launched]);
 
   return <StatusContext.Provider value={status}>{children}</StatusContext.Provider>;
 }

@@ -1,12 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
+        xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
 
   <url>
     <loc>https://only42biryani.com/</loc>
-    <lastmod>2026-11-05</lastmod>
-    <changefreq>weekly</changefreq>
+    <lastmod>2026-11-10</lastmod>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://only42biryani.com/images/biryani-box-and-bag-2.jpg</image:loc>
+      <image:title>Only42Biryani chicken dum biryani in a takeaway box with the Only 42 Biryani bag</image:title>
+    </image:image>
+    <image:image>
+      <image:loc>https://only42biryani.com/images/only42-packaging.jpg</image:loc>
+      <image:title>Only42Biryani takeaway box and paper bag with raita</image:title>
+    </image:image>
+    <video:video>
+      <video:thumbnail_loc>https://only42biryani.com/video/only42-ad-poster.jpg</video:thumbnail_loc>
+      <video:title>Only42Biryani: quality breaks at 43</video:title>
+      <video:description>Why Only42Biryani cooks one fresh batch of 42 plates of chicken dum biryani a day in Hyderabad, then stops.</video:description>
+      <video:content_loc>https://only42biryani.com/video/only42-ad.mp4</video:content_loc>
+      <video:duration>20</video:duration>
+      <video:publication_date>2026-11-06</video:publication_date>
+    </video:video>
+    <video:video>
+      <video:thumbnail_loc>https://only42biryani.com/video/only42-pack-poster.jpg</video:thumbnail_loc>
+      <video:title>Only42Biryani takeaway box, paper bag and raita</video:title>
+      <video:description>The Only42Biryani sugarcane bagasse takeaway box and paper bag, packed with chicken dum biryani and raita.</video:description>
+      <video:content_loc>https://only42biryani.com/video/only42-pack.mp4</video:content_loc>
+      <video:duration>10</video:duration>
+      <video:publication_date>2026-11-06</video:publication_date>
+    </video:video>
   </url>
 
   <url>

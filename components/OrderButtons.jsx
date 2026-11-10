@@ -17,13 +17,13 @@ export default function OrderButtons({ className = '' }) {
   return (
     <div className={`flex flex-wrap gap-3 ${className}`}>
       {platforms.map((p) =>
-        !launched || soldOut ? (
+        soldOut ? (
           <span
             key={p.name}
             aria-disabled="true"
             className="rounded-full border border-white/15 bg-white/[0.03] text-white/45 font-semibold text-sm px-6 py-4 tracking-wide cursor-not-allowed"
           >
-            {p.name} · {soldOut ? 'Sold out today' : 'Launching soon'}
+            {p.name} · Sold out today
           </span>
         ) : (
           <a
@@ -31,7 +31,11 @@ export default function OrderButtons({ className = '' }) {
             href={p.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="rounded-full bg-accent text-black font-bold text-sm px-7 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all"
+            className={
+              launched
+                ? 'rounded-full bg-accent text-black font-bold text-sm px-7 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all'
+                : 'rounded-full border border-white/25 text-white font-semibold text-sm px-7 py-4 tracking-wide hover:border-saffron hover:text-saffron transition-all'
+            }
           >
             Order on {p.name}
           </a>
