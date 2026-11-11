@@ -121,7 +121,6 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
   const total = fee === null ? null : qty * net + fee;
   const saved = qty * (price - net);
   const soldOut = remaining !== null && remaining <= 0;
-  const outOfRange = Boolean(pin && range && range.ok === false);
   const needLocation = Boolean(rules?.configured && rules.requirePin && !pin);
 
   async function getQuote() {
@@ -288,11 +287,11 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
       </button>
       {rules?.configured && (
         <p className="text-[11px] text-white/50 -mt-2">
-          We deliver within {rules.maxKm} km of our kitchen{rules.requirePin ? '. Please share your live location (at the delivery place) so we can check the distance and delivery charge.' : '.'}
+          Our usual delivery range is {rules.maxKm} km{rules.requirePin ? '. Please share your live location (at the delivery place) so we can check the distance and delivery charge.' : '.'}
         </p>
       )}
-      {range?.ok === false && <p role="alert" className="text-sm text-red-400 -mt-1">{range.message}</p>}
-      {range?.ok && range.km !== null && range.km !== undefined && (
+      {range?.outside && <p role="alert" className="text-sm text-amber-300 -mt-1">{range.message}{range.fee !== null && range.fee !== undefined ? ` Delivery for your distance: ${rupees(range.fee)}.` : ''}</p>}
+      {range?.ok && !range.outside && range.km !== null && range.km !== undefined && (
         <p className="text-xs text-green-400 -mt-1">About {range.km} km away. We deliver to you ✓{range.fee !== null && range.fee !== undefined ? ` · delivery ${range.fee === 0 ? 'free' : rupees(range.fee)}` : ''}</p>
       )}
       {pin && (
@@ -326,7 +325,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
-      <button type="submit" disabled={paying || quoting || v.address.trim().length < 10 || outOfRange || needLocation}
+      <button type="submit" disabled={paying || quoting || v.address.trim().length < 10 || needLocation}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
         {quoting ? 'Checking delivery...' : paying ? (self ? 'Placing order...' : 'Opening payment...') : fee === null ? 'Check delivery price' : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>

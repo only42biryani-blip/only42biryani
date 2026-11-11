@@ -45,6 +45,7 @@ const field = 'w-full px-3 py-2 bg-black/40 text-white text-xs outline-none bord
 export default function OrdersBoard({ addToast }) {
   const [orders, setOrders] = useState(null);
   const [borzoOn, setBorzoOn] = useState(false);
+  const [maxKm, setMaxKm] = useState(null);
   const [setup, setSetup] = useState(false);
   const [sound, setSound] = useState(false);
   const [busy, setBusy] = useState('');
@@ -71,6 +72,7 @@ export default function OrdersBoard({ addToast }) {
       }
       setSetup(false);
       setBorzoOn(Boolean(data.borzo));
+      setMaxKm(data.maxKm ?? null);
       const ids = new Set(data.orders.filter((o) => ['new', 'paid'].includes(o.status)).map((o) => o.code));
       if (seen.current && soundRef.current && [...ids].some((c) => !seen.current.has(c))) beep();
       seen.current = ids;
@@ -268,7 +270,10 @@ export default function OrdersBoard({ addToast }) {
                   {o.source === 'manual' ? ' · typed in' : ''}
                 </div>
               </div>
-              {['new', 'paid'].includes(o.status) && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent text-black">NEW</span>}
+              <div className="flex flex-col items-end gap-1">
+                {['new', 'paid'].includes(o.status) && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent text-black">NEW</span>}
+                {maxKm !== null && Number(o.distance_km) > maxKm && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-red-600 text-white">TOO FAR · {Number(o.distance_km)} km</span>}
+              </div>
             </div>
 
             <div className={`mt-2 text-xs font-bold ${isCod(o) ? 'text-amber-300' : 'text-green-400'}`}>
@@ -297,6 +302,12 @@ export default function OrdersBoard({ addToast }) {
               <a className={small} href={mapsLink(o)} target="_blank" rel="noopener noreferrer">Open in Maps</a>
               <a className={small} href={`/admin/bill?code=${o.code}`} target="_blank" rel="noopener noreferrer">Print bill</a>
               {isCod(o) && <a className={small} href={`/admin/bill?code=${o.code}&edit=1`} target="_blank" rel="noopener noreferrer">Edit bill</a>}
+              {maxKm !== null && Number(o.distance_km) > maxKm && !['delivered', 'cancelled', 'refunded'].includes(o.status) && (
+                <a className={`${small} border-red-500/40 text-red-300`} target="_blank" rel="noopener noreferrer"
+                  href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, sorry, your address for Only42Biryani order ${o.code} is about ${Number(o.distance_km)} km away, which is outside our delivery range. ${isCod(o) ? 'We have to cancel this order.' : 'We will cancel it and refund your full payment.'} Sorry for the trouble.`)}`}>
+                  WhatsApp: too far
+                </a>
+              )}
               {o.status === 'confirmed' && (
                 <a className={small} target="_blank" rel="noopener noreferrer"
                   href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, your Only42Biryani order ${o.code} is confirmed. ${o.qty} plate${o.qty > 1 ? 's' : ''}, total ${money(o.total)}${isCod(o) ? '. Please keep cash or UPI ready.' : '.'} We will deliver soon. Thank you!`)}`}>

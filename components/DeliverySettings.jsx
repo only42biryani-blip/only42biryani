@@ -96,7 +96,7 @@ export default function DeliverySettings({ addToast }) {
       <div className="border border-white/10 rounded-2xl p-5">
         <h3 className="font-grotesk text-lg font-bold mb-1">1. Where is your kitchen?</h3>
         <p className="text-xs text-neutral-400 leading-relaxed mb-3">
-          Stand at the kitchen and press the button. Distances to customers are measured from this point. Without it, no distance check happens and any address can order.
+          Stand at the kitchen and press the button. Distances to customers are measured from this point. Without it, no distance is measured.
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <button onClick={pinKitchenHere} disabled={locating} className={btn}>{locating ? 'Getting location...' : '📍 Use my current location as the kitchen'}</button>
@@ -104,16 +104,16 @@ export default function DeliverySettings({ addToast }) {
             <span className="text-xs text-green-400">
               Kitchen pin set ✓ <a className="underline" href={mapsLink({ lat: kitchen.lat, lng: kitchen.lng })} target="_blank" rel="noopener noreferrer">check on map</a>
             </span>
-          ) : <span className="text-xs text-amber-300">Not set yet, so there is no range check</span>}
+          ) : <span className="text-xs text-amber-300">Not set yet, so distance is not measured</span>}
         </div>
       </div>
 
       <div className="border border-white/10 rounded-2xl p-5">
-        <h3 className="font-grotesk text-lg font-bold mb-1">2. How far do you deliver?</h3>
+        <h3 className="font-grotesk text-lg font-bold mb-1">2. Your usual delivery range</h3>
         <p className="text-xs text-neutral-400 leading-relaxed mb-3">
-          Customers farther than this are told on the order page <b>before</b> they order, so nobody pays and then gets refused. Change it any time (for example 5 km now, 15 km later).
+          This is <b>not a hard limit</b>: customers farther away can still order. They are told they are outside the usual range, and the order shows a red <b>TOO FAR</b> badge so you can decide: deliver anyway, or cancel it (online payments are refunded in full from the Orders tab). Change it any time.
         </p>
-        <label className="grid gap-1 text-xs text-neutral-400 w-fit">Deliver up to (km)
+        <label className="grid gap-1 text-xs text-neutral-400 w-fit">Usual range (km)
           <input className={field} inputMode="decimal" value={form.maxKm} onChange={edit('maxKm')} />
         </label>
         <p className="text-[11px] text-neutral-500 mt-2">Distance is the approximate road distance (straight line × 1.3), measured from the customer&apos;s shared live location.</p>

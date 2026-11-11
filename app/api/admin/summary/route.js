@@ -26,7 +26,7 @@ export async function GET(request) {
   checks.push({
     key: 'range', ok: hasKitchenPin(rules),
     label: hasKitchenPin(rules) ? `Delivery range: ${rules.maxKm} km${rules.requirePin ? '' : ' (location optional)'}` : 'Delivery range and kitchen location',
-    fix: 'Open the Delivery tab, press "Use my current location" at the kitchen and set your range. Until then any address can order.',
+    fix: 'Open the Delivery tab, press "Use my current location" at the kitchen and set your range. Until then distance is not measured.',
   });
   if (mode !== 'self') {
     checks.push({ key: 'razorpay', ok: razorpayConfigured(), label: 'Razorpay (online payment)', fix: 'Add RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET and RAZORPAY_WEBHOOK_SECRET once Razorpay approves you.' });

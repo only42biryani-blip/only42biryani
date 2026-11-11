@@ -19,5 +19,5 @@ export async function POST(request) {
   const base = { configured: hasKitchenPin(rules), maxKm: rules.maxKm, requirePin: rules.requirePin };
   if (!hasPin) return Response.json({ ...base }, { headers: { 'Cache-Control': 'no-store' } });
   const d = checkDelivery(rules, { lat, lng });
-  return Response.json({ ...base, ok: d.ok, km: d.km, fee: d.fee, reason: d.reason, message: d.message }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ ...base, ok: d.ok, outside: Boolean(d.outside), km: d.km, fee: d.fee, reason: d.reason, message: d.message }, { headers: { 'Cache-Control': 'no-store' } });
 }
