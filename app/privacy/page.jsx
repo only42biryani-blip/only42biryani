@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CONTACT_EMAIL } from '@/lib/config';
+import { CONTACT_EMAIL, LEGAL_NAME } from '@/lib/config';
 
 export const metadata = {
   title: 'Privacy Policy',
@@ -48,6 +48,9 @@ export default function PrivacyPage() {
 
         <h1 className="font-grotesk text-4xl md:text-5xl font-bold uppercase tracking-tight mt-8 mb-2">Privacy policy</h1>
         <p className="text-white/40 text-sm mb-12">Last updated 5 November 2026</p>
+        {LEGAL_NAME && (
+          <p className="text-white/50 text-sm -mt-8 mb-12">Only42Biryani is a brand of {LEGAL_NAME}.</p>
+        )}
 
         <div className="space-y-10">
           {sections.map((s) => (

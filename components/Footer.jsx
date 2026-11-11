@@ -10,6 +10,7 @@ import {
   AREA,
   FSSAI_LICENSE,
   CONTACT_EMAIL,
+  LEGAL_NAME,
 } from '@/lib/config';
 
 const links = [
@@ -64,8 +65,16 @@ export default function Footer() {
       </div>
 
       <p className="max-w-[1400px] mx-auto px-6 mt-10 text-xs text-white/30">
-        © 2026 Only42Biryani, Hyderabad ·{' '}
+        © 2026 Only42Biryani{LEGAL_NAME ? `, a brand of ${LEGAL_NAME}` : ''}, Hyderabad ·{' '}
         <Link href="/privacy" className="hover:text-saffron">Privacy policy</Link>
+        {' · '}
+        <Link href="/contact" className="hover:text-saffron">Contact</Link>
+        {' · '}
+        <Link href="/terms" className="hover:text-saffron">Terms</Link>
+        {' · '}
+        <Link href="/refund-policy" className="hover:text-saffron">Refunds</Link>
+        {' · '}
+        <Link href="/delivery-policy" className="hover:text-saffron">Delivery</Link>
       </p>
     </footer>
   );

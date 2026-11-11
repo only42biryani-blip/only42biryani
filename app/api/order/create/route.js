@@ -1,0 +1,70 @@
+import { quoteDelivery } from '@/lib/borzo';
+import { createRazorpayOrder } from '@/lib/razorpay';
+import { orderDb } from '@/lib/supabase-admin';
+import { plateConfig, orderingBlocker, isOpenNow, newCode, validateOrder } from '@/lib/orders';
+import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
+
+// Starts an order: checks everything on the server (price, delivery fee, opening hours, plates left),
+// holds the plates for 10 minutes, and creates the Razorpay payment. Nothing the browser sends about
+// prices is trusted; the totals are always worked out here.
+export async function POST(request) {
+  if (!sameSite(request)) return bad('Forbidden', 403);
+  if (rateLimited('order-create', clientIp(request), 6, 10 * 60 * 1000)) {
+    return bad('Too many attempts. Please try again in a few minutes.', 429);
+  }
+  if (orderingBlocker()) return bad('Online ordering is not open yet.', 503);
+  if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
+
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return bad('Invalid request.');
+  }
+  if (body.website) return Response.json({ ok: true }); // honeypot
+
+  const cfg = plateConfig();
+  const v = validateOrder(body, cfg.maxQty);
+  if (!v.ok) return bad(v.error);
+  const o = v.value;
+
+  // Delivery price from Borzo, worked out here.
+  const quote = await quoteDelivery({ dropAddress: o.address, thermobox: process.env.BORZO_THERMOBOX === '1' });
+  if (!quote.ok) {
+    const code = (quote.errors || [])[0];
+    if (code === 'invalid_parameters' || code === 'route_not_found') return bad('We could not find that address. Check it and try again.', 422);
+    return bad('We could not price the delivery right now. Please try again.', 502);
+  }
+  if (cfg.maxFee && quote.customerFee > cfg.maxFee) {
+    return bad('Sorry, that address is outside our delivery area.', 422);
+  }
+
+  const fee = quote.customerFee;
+  const total = o.qty * cfg.price + fee;
+  const code = newCode();
+  const db = orderDb();
+
+  const { error } = await db.rpc('place_order_hold', {
+    p_code: code, p_qty: o.qty, p_plate_price: cfg.price, p_delivery_fee: fee, p_total: total,
+    p_name: o.name, p_phone: o.phone, p_email: o.email, p_address: o.address, p_note: o.note, p_hold_minutes: 10,
+  });
+  if (error) {
+    if (/sold_out/i.test(error.message || '')) return bad('Sorry, there are not enough plates left today.', 409);
+    return bad('We could not start your order. Please try again.', 502);
+  }
+
+  const rz = await createRazorpayOrder({ totalRupees: total, receipt: code, notes: { code } });
+  if (!rz.ok) {
+    await db.rpc('cancel_order', { p_code: code, p_restore: true }); // give the plates back
+    return bad('We could not start the payment. Please try again.', 502);
+  }
+  await db.from('orders').update({ razorpay_order_id: rz.id }).eq('code', code);
+
+  return Response.json(
+    {
+      code, razorpayOrderId: rz.id, amountPaise: rz.amountPaise, keyId: process.env.RAZORPAY_KEY_ID,
+      total, fee, plateTotal: o.qty * cfg.price, holdMinutes: 10, name: o.name, phone: o.phone, email: o.email,
+    },
+    { headers: { 'Cache-Control': 'no-store' } }
+  );
+}

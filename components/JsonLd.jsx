@@ -1,4 +1,4 @@
-import { SITE_URL, ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL, PHONE, AREA, PLATE } from '@/lib/config';
+import { SITE_URL, ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL, PHONE, AREA, PLATE, LEGAL_NAME } from '@/lib/config';
 import { getFaqItems } from '@/lib/faq';
 
 const DESCRIPTION =
@@ -74,6 +74,7 @@ export default function JsonLd({ launched }) {
       url: `${SITE_URL}/`,
       description: DESCRIPTION,
       slogan: 'Only 42 plates a day.',
+      ...(LEGAL_NAME ? { legalName: LEGAL_NAME } : {}),
       image: images,
       logo: `${SITE_URL}/icons/icon-512.png`,
       servesCuisine: ['Hyderabadi', 'Biryani', 'Indian'],

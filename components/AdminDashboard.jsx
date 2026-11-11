@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ADMIN_EMAIL, ZOMATO_URL } from '@/lib/config';
+import OrdersBoard from './OrdersBoard';
 
 const TOTAL = 42;
 const SENT_KEY = 'only42-messaged';
@@ -495,6 +496,9 @@ export default function AdminDashboard() {
             </div>
           )}
         </div>
+
+        {/* Direct orders (kitchen board) */}
+        <OrdersBoard addToast={addToast} />
 
         {/* Waitlist */}
         <button onClick={toggleWaitlist} className={`w-full py-4 text-sm mb-4 ${ghostBtn} rounded-2xl`}>
