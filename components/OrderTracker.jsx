@@ -47,6 +47,11 @@ export default function OrderTracker({ code }) {
       <h2 className="font-grotesk text-3xl font-extrabold text-[#F5F1E8] mb-1">
         {o.firstName ? `Thanks, ${o.firstName}!` : 'Thanks!'}
       </h2>
+      {o.scheduledFor && !closed && (
+        <p className="mb-4 rounded-xl border border-saffron/40 bg-saffron/10 text-saffron text-sm font-semibold p-3">
+          Pre-booked for {new Date(`${o.scheduledFor}T12:00:00Z`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}. We will confirm it and deliver it fresh that day.
+        </p>
+      )}
       <p className="text-white/60 text-sm mb-6">
         {o.qty} × chicken dum biryani · ₹{Number(o.total).toLocaleString('en-IN')} · {o.label}
       </p>

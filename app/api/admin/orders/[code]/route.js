@@ -142,7 +142,9 @@ export async function POST(request, { params }) {
       const c = await cancelDelivery(o.borzo_order_id);
       if (!c.ok) riderNote = ' The Borzo rider booking could not be cancelled automatically; cancel it in the Borzo app.';
     }
-    await db.rpc('cancel_order', { p_code: code, p_restore: Boolean(body.restore) });
+    // A pre-booked order for a FUTURE day never took a plate from today's count, so there is nothing to put back.
+    const futureBooking = o.scheduled_for && o.scheduled_for > new Date(Date.now() + 5.5 * 3600 * 1000).toISOString().slice(0, 10);
+    await db.rpc('cancel_order', { p_code: code, p_restore: Boolean(body.restore) && !futureBooking });
     if (o.razorpay_payment_id) {
       const rf = await refundPayment(o.razorpay_payment_id, o.total);
       if (!rf.ok) return Response.json({ error: `Order cancelled but the refund failed (${rf.error}). Refund it in the Razorpay dashboard.${riderNote}` }, { status: 502 });

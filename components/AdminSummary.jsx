@@ -17,7 +17,7 @@ function Tile({ label, value, sub, tone }) {
 }
 
 // The "Today" tab: what is happening now, money, and a checklist of what still needs setting up.
-export default function AdminSummary({ inventory, total, onGoTab, reviewsWaiting, waitlistCount }) {
+export default function AdminSummary({ inventory, total, onGoTab, reviewsWaiting, waitlistCount, onPrebook }) {
   const [data, setData] = useState(null);
   const [error, setError] = useState('');
 
@@ -27,12 +27,14 @@ export default function AdminSummary({ inventory, total, onGoTab, reviewsWaiting
       const token = s.session?.access_token;
       const res = await fetch('/api/admin/summary', { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store' });
       if (!res.ok) throw new Error('bad');
-      setData(await res.json());
+      const json = await res.json();
+      setData(json);
       setError('');
+      onPrebook?.(json.summary?.prebookedToday?.plates || 0);
     } catch {
       setError('Could not load the summary. Check your internet and press Refresh.');
     }
-  }, []);
+  }, [onPrebook]);
 
   useEffect(() => {
     const t = setTimeout(load, 0);
@@ -73,6 +75,14 @@ export default function AdminSummary({ inventory, total, onGoTab, reviewsWaiting
       {s && s.toCollectCount > 0 && (
         <div className="rounded-2xl border border-amber-400/30 bg-amber-400/5 p-4 text-sm">
           <b>{rs(s.toCollect)}</b> still to collect from {s.toCollectCount} cash / UPI order{s.toCollectCount > 1 ? 's' : ''} on delivery.
+        </div>
+      )}
+
+      {s && (s.prebookedToday.orders > 0 || s.prebookedTomorrow.orders > 0) && (
+        <div className="rounded-2xl border border-saffron/40 bg-saffron/5 p-4 text-sm grid gap-1">
+          <b>Pre-booked orders</b>
+          {s.prebookedToday.orders > 0 && <span>For today: {s.prebookedToday.orders} order{s.prebookedToday.orders > 1 ? 's' : ''}, {s.prebookedToday.plates} plate{s.prebookedToday.plates > 1 ? 's' : ''}. Press Start today&apos;s drop below: it keeps these plates reserved.</span>}
+          {s.prebookedTomorrow.orders > 0 && <span>For tomorrow: {s.prebookedTomorrow.orders} order{s.prebookedTomorrow.orders > 1 ? 's' : ''}, {s.prebookedTomorrow.plates} plate{s.prebookedTomorrow.plates > 1 ? 's' : ''} (of 42).</span>}
         </div>
       )}
 

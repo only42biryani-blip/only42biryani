@@ -13,6 +13,7 @@ const OPTIONS = [
 // How customers can pay. Saved in the database; takes effect straight away (admin login only).
 export default function PaymentSettings({ addToast }) {
   const [state, setState] = useState(null); // { accept_cod, online_pay }
+  const [prebook, setPrebook] = useState(null); // null = pre-booking SQL not run yet
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [link, setLink] = useState('');
@@ -22,6 +23,8 @@ export default function PaymentSettings({ addToast }) {
     if (error || !data) return setMissing(true);
     setMissing(false);
     setState({ accept_cod: data.accept_cod !== false, online_pay: ['test', 'on'].includes(data.online_pay) ? data.online_pay : 'off' });
+    const p = await supabase.from('settings').select('accept_prebook').eq('id', 1).maybeSingle();
+    setPrebook(p.error || !p.data ? null : p.data.accept_prebook === true);
   }, []);
 
   useEffect(() => {
@@ -41,6 +44,15 @@ export default function PaymentSettings({ addToast }) {
     if (error || !data || data.length === 0) return addToast?.('Could not save. Run supabase-payment-setup.sql in Supabase first.', 'error');
     setState({ accept_cod: data[0].accept_cod !== false, online_pay: data[0].online_pay });
     addToast?.(okMessage, 'success');
+  }
+
+  async function savePrebook(on) {
+    setBusy(true);
+    const { data, error } = await supabase.from('settings').update({ accept_prebook: on }).eq('id', 1).select('accept_prebook');
+    setBusy(false);
+    if (error || !data || data.length === 0) return addToast?.('Could not save. Run supabase-prebook-setup.sql in Supabase first.', 'error');
+    setPrebook(data[0].accept_prebook === true);
+    addToast?.(on ? 'Pre-booking is ON.' : 'Pre-booking is OFF.', 'success');
   }
 
   async function makeLink() {
@@ -78,6 +90,17 @@ export default function PaymentSettings({ addToast }) {
         <input type="checkbox" checked={state.accept_cod} disabled={busy} onChange={(e) => save({ accept_cod: e.target.checked }, e.target.checked ? 'Cash / UPI on delivery is ON.' : 'Cash / UPI on delivery is OFF.')} className="mt-1 h-5 w-5 accent-[#D4FF3F]" />
         <span className="text-sm"><b>Cash / UPI on delivery</b>
           <span className="block text-xs text-neutral-400">Customers place the order and pay you when it arrives. Keep this ON for launch.</span>
+        </span>
+      </label>
+
+      <label className="flex items-start gap-3 cursor-pointer">
+        <input type="checkbox" checked={prebook === true} disabled={busy || prebook === null} onChange={(e) => savePrebook(e.target.checked)} className="mt-1 h-5 w-5 accent-[#D4FF3F]" />
+        <span className="text-sm"><b>Pre-booking for the next day</b>
+          <span className="block text-xs text-neutral-400">
+            {prebook === null
+              ? 'Not set up yet: run supabase-prebook-setup.sql in Supabase, then reload.'
+              : 'When you are offline, closed or sold out, customers can still order: tomorrow is picked for them, and they can choose any day up to a week ahead (up to 42 plates per day). Cash / UPI on delivery. Booked plates are kept aside for that day.'}
+          </span>
         </span>
       </label>
 

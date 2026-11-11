@@ -6,7 +6,7 @@ import { ZOMATO_URL, OFFER } from '@/lib/config';
 
 // Always-visible action button on phones, where most visitors arrive from Instagram.
 export default function StickyCta() {
-  const { launched, remaining, directOrdering } = useStatus();
+  const { launched, remaining, directOrdering, prebook } = useStatus();
   const soldOut = launched && remaining !== null && remaining <= 0;
 
   const base = 'block w-full text-center rounded-full font-bold text-sm tracking-wide py-4';
@@ -16,6 +16,10 @@ export default function StickyCta() {
       {directOrdering && !soldOut ? (
         <Link href="/order" className={`${base} bg-accent text-black shadow-[0_8px_30px_rgba(212,255,63,0.3)]`}>
           Order now{OFFER?.percent ? ` · ${OFFER.percent}% OFF` : ''}{remaining !== null ? ` · ${remaining} left` : ''}
+        </Link>
+      ) : launched && prebook ? (
+        <Link href="/order" className={`${base} bg-accent text-black shadow-[0_8px_30px_rgba(212,255,63,0.3)]`}>
+          Pre-book for tomorrow{OFFER?.percent ? ` · ${OFFER.percent}% OFF` : ''}
         </Link>
       ) : launched && !soldOut && ZOMATO_URL ? (
         <a href={ZOMATO_URL} target="_blank" rel="noopener noreferrer"

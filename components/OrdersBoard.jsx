@@ -272,6 +272,7 @@ export default function OrdersBoard({ addToast }) {
               </div>
               <div className="flex flex-col items-end gap-1">
                 {['new', 'paid'].includes(o.status) && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent text-black">NEW</span>}
+                {o.scheduled_for && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-saffron text-black">PRE-BOOKED · {new Date(`${o.scheduled_for}T12:00:00Z`).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' })}</span>}
                 {o.source === 'test' && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-400 text-black">TEST ORDER</span>}
                 {maxKm !== null && Number(o.distance_km) > maxKm && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-red-600 text-white">TOO FAR · {Number(o.distance_km)} km</span>}
               </div>
@@ -311,7 +312,7 @@ export default function OrdersBoard({ addToast }) {
               )}
               {o.status === 'confirmed' && (
                 <a className={small} target="_blank" rel="noopener noreferrer"
-                  href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, your Only42Biryani order ${o.code} is confirmed. ${o.qty} plate${o.qty > 1 ? 's' : ''}, total ${money(o.total)}${isCod(o) ? '. Please keep cash or UPI ready.' : '.'} We will deliver soon. Thank you!`)}`}>
+                  href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, your Only42Biryani order ${o.code} is confirmed${o.scheduled_for ? ` for ${new Date(`${o.scheduled_for}T12:00:00Z`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}` : ''}. ${o.qty} plate${o.qty > 1 ? 's' : ''}, total ${money(o.total)}${isCod(o) ? '. Please keep cash or UPI ready.' : '.'} We will deliver soon. Thank you!`)}`}>
                   WhatsApp: confirmed
                 </a>
               )}

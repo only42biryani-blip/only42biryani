@@ -12,7 +12,8 @@ export async function GET(request, { params }) {
   if (!db) return bad('Not available.', 503);
 
   const base = 'code,status,qty,total,customer_name,borzo_status,tracking_url,courier_name,courier_phone,created_at,hold_expires_at';
-  let { data: o, error } = await db.from('orders').select(`${base},payment_mode`).eq('code', code).maybeSingle();
+  let { data: o, error } = await db.from('orders').select(`${base},payment_mode,scheduled_for`).eq('code', code).maybeSingle();
+  if (error) ({ data: o, error } = await db.from('orders').select(`${base},payment_mode`).eq('code', code).maybeSingle()); // before the pre-booking SQL has been run
   if (error) ({ data: o } = await db.from('orders').select(base).eq('code', code).maybeSingle()); // before the self-delivery SQL has been run
   if (!o) return bad('Order not found.', 404);
 
@@ -24,6 +25,7 @@ export async function GET(request, { params }) {
       qty: o.qty,
       total: o.total,
       paymentMode: o.payment_mode,
+      scheduledFor: o.scheduled_for || null,
       firstName: String(o.customer_name || '').split(' ')[0],
       trackingUrl: o.tracking_url,
       courierName: o.courier_name,

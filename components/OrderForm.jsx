@@ -41,12 +41,24 @@ function loadRazorpay() {
 
 const rupees = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
 
+function StepHead({ n, title, note }) {
+  return (
+    <div className="flex items-center gap-3 mt-2 first:mt-0">
+      <span className="w-7 h-7 shrink-0 rounded-full bg-accent text-black text-sm font-extrabold flex items-center justify-center">{n}</span>
+      <h2 className="font-grotesk text-lg font-bold text-[#F5F1E8]">{title}</h2>
+      {note && <span className="ml-auto text-xs text-saffron">{note}</span>}
+    </div>
+  );
+}
+
 // Order form: details -> delivery price -> pay. All prices are re-checked by the server before payment.
-export default function OrderForm({ price, maxQty, remaining, hoursText, cod = true, online = false, testToken = '', offerPercent = 0, selfFee = 0 }) {
+export default function OrderForm({ price, maxQty, remaining, hoursText, cod = true, online = false, testToken = '', offerPercent = 0, selfFee = 0, prebook = null, reason = '' }) {
   const [v, setV] = useState({ name: '', phone: '', email: '', address: '', note: '', qty: 1 });
   const [method, setMethod] = useState(cod ? 'cod' : 'online'); // how the customer pays
   const self = method === 'cod'; // cash / UPI on delivery
   const [fee, setFee] = useState(selfFee);
+  const [date, setDate] = useState(prebook ? prebook[0].value : ''); // pre-booking: tomorrow by default
+  const dateLabel = prebook ? (prebook.find((d) => d.value === date)?.label || '').replace('Tomorrow · ', 'tomorrow, ') : '';
   const [pin, setPin] = useState(null); // { lat, lng } from the phone's location
   const [locating, setLocating] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -119,7 +131,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
   const net = Math.round(price * (1 - offerPercent / 100)); // price after the offer, as the server will charge it
   const total = qty * net + fee;
   const saved = qty * (price - net);
-  const soldOut = remaining !== null && remaining <= 0;
+  const soldOut = !prebook && remaining !== null && remaining <= 0;
   const needLocation = Boolean(rules?.configured && rules.requirePin && !pin);
 
   function shareLocation() {
@@ -140,7 +152,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
       const res = await fetch('/api/order/place', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...v, qty, lat: pin?.lat, lng: pin?.lng, website: trap }),
+        body: JSON.stringify({ ...v, qty, lat: pin?.lat, lng: pin?.lng, website: trap, scheduledFor: prebook ? date : undefined }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.error || 'Could not place your order.');
@@ -223,17 +235,40 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
       <input type="text" name="website" value={trap} onChange={(e) => setTrap(e.target.value)} tabIndex={-1}
         autoComplete="off" aria-hidden="true" className="absolute left-[-9999px] w-px h-px opacity-0" />
 
-      <div className="flex items-baseline justify-between gap-3">
-        <div>
-          <div className="text-saffron text-xs font-semibold tracking-[3px] uppercase">Chicken dum biryani</div>
-          <div className="font-grotesk text-3xl font-extrabold text-[#F5F1E8]">
-            {offerPercent > 0 && <span className="text-xl text-white/40 line-through mr-2">{rupees(price)}</span>}
-            {rupees(net)} <span className="text-base text-white/50 font-normal">per plate</span>
+      {prebook && (
+        <div role="status" className="rounded-xl border border-saffron/50 bg-saffron/10 p-4 text-sm">
+          <div className="font-bold text-saffron">
+            {reason === 'soldout' ? 'Today is sold out' : reason === 'closed' ? 'We are closed right now' : 'The kitchen is offline right now'}: pre-book for the next day
           </div>
-          {offerPercent > 0 && <div className="inline-block mt-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-accent text-black">{offerPercent}% OFF</div>}
+          <p className="text-white/70 text-xs mt-1 leading-relaxed">Pick a day below. We will confirm your booking and deliver it fresh that day. Pay cash or UPI on delivery.</p>
         </div>
-        {remaining !== null && <div className="text-xs text-white/60">{remaining} left today</div>}
+      )}
+      <StepHead n={1} title="Your order" note={!prebook && remaining !== null ? `${remaining} plates left today` : ''} />
+      <div className="rounded-xl border border-white/10 bg-black/30 p-4 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-[#F5F1E8]">Hyderabadi chicken dum biryani</div>
+          <div className="text-[11px] text-white/50">One plate, one person</div>
+        </div>
+        <div className="text-right">
+          {offerPercent > 0 && <div className="text-xs text-white/40 line-through">{rupees(price)}</div>}
+          <div className="font-grotesk text-xl font-extrabold text-[#F5F1E8]">{rupees(net)}</div>
+          {offerPercent > 0 && <div className="inline-block mt-0.5 text-[10px] font-bold px-2 py-0.5 rounded-full bg-accent text-black">{offerPercent}% OFF</div>}
+        </div>
       </div>
+
+      {prebook && (
+        <fieldset className="grid gap-2">
+          <legend className="text-xs text-white/60 mb-1">Which day?</legend>
+          <div className="flex flex-wrap gap-2">
+            {prebook.map((d) => (
+              <button type="button" key={d.value} onClick={() => setDate(d.value)} aria-pressed={date === d.value}
+                className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${date === d.value ? 'bg-accent text-black border-accent' : 'border-white/25 text-white/80 hover:border-saffron'}`}>
+                {d.label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <label className="grid gap-1.5 text-xs text-white/60">
         Plates
@@ -244,6 +279,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         </select>
       </label>
 
+      <StepHead n={2} title="Delivery details" />
       {savedAddr && (
         <div className="rounded-xl border border-saffron/40 bg-saffron/5 p-4 text-sm">
           <div className="text-[11px] tracking-[2px] uppercase text-saffron font-semibold mb-1">Saved on this phone</div>
@@ -291,6 +327,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         Remember my details on this phone for next time
       </label>
 
+      <StepHead n={3} title="Payment and confirm" />
       {cod && online && (
         <fieldset className="grid gap-2">
           <legend className="text-xs text-white/60 mb-1">How do you want to pay?</legend>
@@ -323,7 +360,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
 
       <button type="submit" disabled={paying || v.address.trim().length < 10 || needLocation}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-        {paying ? (self ? 'Placing order...' : 'Opening payment...') : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
+        {paying ? (self ? 'Placing order...' : 'Opening payment...') : prebook ? `Pre-book for ${dateLabel} · ${rupees(total)}` : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>
 
       <p className="text-[11px] text-white/45 leading-relaxed">

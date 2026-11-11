@@ -96,6 +96,7 @@ export default function AdminDashboard() {
 
   const [tab, setTab] = useState('today');
   const [reviewsWaiting, setReviewsWaiting] = useState(null);
+  const [prebookToday, setPrebookToday] = useState(0); // plates already pre-booked for today
   const [waitlistCount, setWaitlistCount] = useState(null);
   const [waitlist, setWaitlist] = useState([]);
   const [waitlistState, setWaitlistState] = useState('idle');
@@ -456,7 +457,7 @@ export default function AdminDashboard() {
 
         {/* Today: numbers, setup checklist and the plate count */}
         <div className={tab === 'today' ? '' : 'hidden'}>
-        <AdminSummary inventory={inventory} total={TOTAL} onGoTab={openTab} reviewsWaiting={reviewsWaiting} waitlistCount={waitlistCount} />
+        <AdminSummary inventory={inventory} total={TOTAL} onGoTab={openTab} reviewsWaiting={reviewsWaiting} waitlistCount={waitlistCount} onPrebook={setPrebookToday} />
 
         {/* Plates */}
         <div className="text-center mt-8 mb-6">
@@ -490,10 +491,10 @@ export default function AdminDashboard() {
             Subtract 1
           </button>
           <button
-            onClick={() => saveInventory(TOTAL, { confirmText: `Start today's drop? This sets the count to ${TOTAL}.` })}
+            onClick={() => saveInventory(Math.max(0, TOTAL - prebookToday), { confirmText: prebookToday > 0 ? `Start today's drop? ${prebookToday} plate${prebookToday > 1 ? 's are' : ' is'} already pre-booked for today, so the count is set to ${Math.max(0, TOTAL - prebookToday)} of ${TOTAL}.` : `Start today's drop? This sets the count to ${TOTAL}.` })}
             disabled={saving}
             className={`col-span-2 py-4 rounded-2xl text-sm ${ghostBtn}`}>
-            Start today&apos;s drop (reset to {TOTAL})
+            Start today&apos;s drop (reset to {Math.max(0, TOTAL - prebookToday)}{prebookToday > 0 ? `: ${prebookToday} pre-booked` : ''})
           </button>
           <button
             onClick={() => saveInventory(0, { confirmText: 'Declare SOLD OUT? Visitors will see the sold-out state.' })}

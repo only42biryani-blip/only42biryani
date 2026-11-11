@@ -44,7 +44,7 @@ export async function GET(request) {
   if (!db) return Response.json({ checks, blocker, summary: null, setup: true }, { headers: { 'Cache-Control': 'no-store' } });
 
   const since = new Date(istDayStart().getTime() - 7 * 86400000).toISOString(); // today + a little history for "still active"
-  const { data, error } = await db.from('orders').select('status,total,qty,payment_mode,paid_by,created_at').gte('created_at', since).limit(1000);
+  const { data, error } = await db.from('orders').select('*').gte('created_at', since).limit(1000);
   if (error) return Response.json({ checks, blocker, summary: null, setup: true }, { headers: { 'Cache-Control': 'no-store' } });
   return Response.json({ checks, blocker, summary: summarize(data || []) }, { headers: { 'Cache-Control': 'no-store' } });
 }
