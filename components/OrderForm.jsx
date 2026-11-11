@@ -261,9 +261,10 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
           <legend className="text-xs text-white/60 mb-1">Which day?</legend>
           <div className="flex flex-wrap gap-2">
             {prebook.map((d) => (
-              <button type="button" key={d.value} onClick={() => setDate(d.value)} aria-pressed={date === d.value}
-                className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors ${date === d.value ? 'bg-accent text-black border-accent' : 'border-white/25 text-white/80 hover:border-saffron'}`}>
+              <button type="button" key={d.value} onClick={() => setDate(d.value)} aria-pressed={date === d.value} disabled={d.left === 0}
+                className={`rounded-full border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${date === d.value ? 'bg-accent text-black border-accent' : 'border-white/25 text-white/80 hover:border-saffron'}`}>
                 {d.label}
+                <span className="block text-[10px] font-normal opacity-70">{d.left === 0 ? 'fully booked' : `${d.left} of 42 left`}</span>
               </button>
             ))}
           </div>

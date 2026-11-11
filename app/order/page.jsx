@@ -6,7 +6,7 @@ import { orderingBlocker, plateConfig, isOpenNow } from '@/lib/orders';
 import { kitchenOnline } from '@/lib/kitchen';
 import { paymentOptions, onlineAllowed } from '@/lib/payment';
 import { deliveryRules } from '@/lib/deliveryRules';
-import { prebookEnabled, prebookDates } from '@/lib/prebook';
+import { prebookEnabled, prebookDatesWithLeft } from '@/lib/prebook';
 import { OFFER, PLATE, AREA } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +61,7 @@ export default async function OrderPage({ searchParams }) {
   const soldOutToday = status?.remaining !== null && status?.remaining !== undefined && status.remaining <= 0;
   // Offline, closed or sold out today: offer to pre-book (cash / UPI on delivery) for the next day.
   const prebookMode = prebookOn && pay.cod && (!online || !open || soldOutToday);
-  const dates = prebookMode ? prebookDates() : null;
+  const dates = prebookMode ? await prebookDatesWithLeft() : null;
 
   const net = cfg.price ? Math.round(cfg.price * (1 - cfg.offerPercent / 100)) : null;
   const maxFee = rules.maxFee;

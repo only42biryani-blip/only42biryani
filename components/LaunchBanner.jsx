@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useStatus } from './StatusProvider';
 import LaunchCountdown from './LaunchCountdown';
 import { ZOMATO_URL } from '@/lib/config';
@@ -8,7 +9,8 @@ const TOTAL = 42;
 
 // Slim bar pinned to the top of every page view. This is the first thing people see.
 export default function LaunchBanner() {
-  const { launched, launchAt, banner, remaining } = useStatus();
+  const { launched, launchAt, banner, remaining, kitchenOnline, tomorrowLeft } = useStatus();
+  const offline = launched && kitchenOnline === false;
   const soldOut = launched && remaining !== null && remaining <= 0;
 
   let content;
@@ -20,6 +22,13 @@ export default function LaunchBanner() {
         <span>LAUNCHING SOON</span>
         <LaunchCountdown target={launchAt} compact />
         <a href="#terminal" className="underline underline-offset-4 hover:text-white">JOIN THE WAITLIST</a>
+      </>
+    );
+  } else if (offline) {
+    content = (
+      <>
+        <span>KITCHEN OFFLINE{tomorrowLeft !== null && tomorrowLeft !== undefined ? ` · PRE-BOOK TOMORROW · ${tomorrowLeft} OF ${TOTAL} LEFT` : ''}</span>
+        {tomorrowLeft !== null && tomorrowLeft !== undefined && <Link href="/order" className="underline underline-offset-4 hover:text-white">PRE-BOOK</Link>}
       </>
     );
   } else if (soldOut) {

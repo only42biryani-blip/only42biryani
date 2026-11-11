@@ -8,9 +8,11 @@ import { useStatus } from './StatusProvider';
 const TOTAL = 42;
 
 export default function InventoryBox() {
-  const { launched, remaining } = useStatus();
+  const { launched, remaining, kitchenOnline, tomorrowLeft } = useStatus();
   const PRE_LAUNCH_MODE = !launched;
-  const count = launched ? remaining : TOTAL;
+  // Kitchen offline: today's number is not what a customer can order, so show tomorrow's free plates instead.
+  const offline = launched && kitchenOnline === false && tomorrowLeft !== null && tomorrowLeft !== undefined;
+  const count = offline ? tomorrowLeft : launched ? remaining : TOTAL;
   const loading = false;
   const boxRef = useRef(null);
 
@@ -49,7 +51,7 @@ export default function InventoryBox() {
         <BorderBeam colorFrom="rgba(212,255,63,0.5)" colorTo="transparent" />
       )}
 
-      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">Plates today</p>
+      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">{offline ? 'Plates for tomorrow' : 'Plates today'}</p>
 
       <h2
         className="font-grotesk font-extrabold text-[74px] leading-none tracking-[-2px] my-3 transition-colors"
@@ -59,7 +61,7 @@ export default function InventoryBox() {
       </h2>
 
       <p className="text-sm tracking-[4px] mb-4 text-neutral-300">
-        {PRE_LAUNCH_MODE ? 'PLATES PER DROP' : isSoldOut ? 'SOLD OUT' : 'LEFT TODAY'}
+        {PRE_LAUNCH_MODE ? 'PLATES PER DROP' : offline ? (isSoldOut ? 'FULLY BOOKED' : 'LEFT TO PRE-BOOK') : isSoldOut ? 'SOLD OUT' : 'LEFT TODAY'}
       </p>
 
       {/* Progress Bar */}
@@ -86,15 +88,17 @@ export default function InventoryBox() {
         }}
       >
         {!isSoldOut && <span className="w-2 h-2 rounded-full bg-current animate-live-pulse" />}
-        {PRE_LAUNCH_MODE ? 'PREVIEW — LAUNCHING SOON' : isSoldOut ? 'DROP STATUS — SOLD OUT' : 'DROP STATUS — LIVE'}
+        {PRE_LAUNCH_MODE ? 'PREVIEW — LAUNCHING SOON' : offline ? 'KITCHEN OFFLINE — PRE-BOOKING OPEN' : isSoldOut ? 'DROP STATUS — SOLD OUT' : 'DROP STATUS — LIVE'}
       </span>
 
       {/* Countdown shows only in sold-out mode */}
-      {isSoldOut && !PRE_LAUNCH_MODE && <CountdownTimer />}
+      {isSoldOut && !PRE_LAUNCH_MODE && !offline && <CountdownTimer />}
 
       <p className="text-neutral-500 text-sm leading-relaxed mt-4">
         {PRE_LAUNCH_MODE
           ? "We haven't launched yet — the numbers above show how each day's drop will work. Join the waitlist to get notified the moment we go live."
+          : offline
+          ? 'The kitchen is offline right now. Pre-book tomorrow\'s biryani and we will deliver it fresh that day.'
           : 'The plate count is updated by hand from what the kitchen has really made and sold.'}
       </p>
     </div>

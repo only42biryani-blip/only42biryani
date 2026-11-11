@@ -78,11 +78,17 @@ export default function AdminSummary({ inventory, total, onGoTab, reviewsWaiting
         </div>
       )}
 
-      {s && (s.prebookedToday.orders > 0 || s.prebookedTomorrow.orders > 0) && (
+      {s && (
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 text-sm flex flex-wrap items-center justify-between gap-2">
+          <span><b>Tomorrow</b> (pre-bookings): {s.prebookedTomorrow.plates} booked in {s.prebookedTomorrow.orders} order{s.prebookedTomorrow.orders === 1 ? '' : 's'}</span>
+          <span className="font-grotesk text-xl font-bold text-accent">{Math.max(0, total - s.prebookedTomorrow.plates)} of {total} left</span>
+        </div>
+      )}
+
+      {s && s.prebookedToday.orders > 0 && (
         <div className="rounded-2xl border border-saffron/40 bg-saffron/5 p-4 text-sm grid gap-1">
           <b>Pre-booked orders</b>
           {s.prebookedToday.orders > 0 && <span>For today: {s.prebookedToday.orders} order{s.prebookedToday.orders > 1 ? 's' : ''}, {s.prebookedToday.plates} plate{s.prebookedToday.plates > 1 ? 's' : ''}. Press Start today&apos;s drop below: it keeps these plates reserved.</span>}
-          {s.prebookedTomorrow.orders > 0 && <span>For tomorrow: {s.prebookedTomorrow.orders} order{s.prebookedTomorrow.orders > 1 ? 's' : ''}, {s.prebookedTomorrow.plates} plate{s.prebookedTomorrow.plates > 1 ? 's' : ''} (of 42).</span>}
         </div>
       )}
 

@@ -11,7 +11,7 @@ const LOW = 8;
 //  1. A live badge: "Launching soon" before launch, then "N left", red when low, "Sold out" at zero.
 //  2. A short neon flicker when hovered, focused or tapped (nothing moves while idle).
 export default function HeaderLogo() {
-  const { launched, remaining } = useStatus();
+  const { launched, remaining, kitchenOnline } = useStatus();
   const [lit, setLit] = useState(false);
   const timer = useRef(null);
 
@@ -23,7 +23,10 @@ export default function HeaderLogo() {
 
   let text = 'Launching soon';
   let tone = 'soon';
-  if (launched && remaining !== null) {
+  if (launched && kitchenOnline === false) {
+    text = 'Offline';
+    tone = 'out';
+  } else if (launched && remaining !== null) {
     if (remaining <= 0) {
       text = 'Sold out';
       tone = 'out';
