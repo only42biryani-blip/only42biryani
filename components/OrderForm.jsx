@@ -54,7 +54,39 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
   const [trap, setTrap] = useState('');
   const [savedAddr, setSavedAddr] = useState(null); // address remembered on this phone
   const [remember, setRemember] = useState(true);
+  const [rules, setRules] = useState(null); // { configured, maxKm, requirePin } from your Delivery settings
+  const [range, setRange] = useState(null); // result of the distance check for the shared location
   const router = useRouter();
+
+  // Delivery range and charge, from your settings: checked as soon as a live location is shared.
+  useEffect(() => {
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/delivery/check', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pin ? { lat: pin.lat, lng: pin.lng } : {}),
+        });
+        const d = await res.json().catch(() => null);
+        if (cancelled || !res.ok || !d) return;
+        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin });
+        if (pin) {
+          setRange(d);
+          if (self && d.ok && d.fee !== null && d.fee !== undefined) setFee(d.fee);
+        } else {
+          setRange(null);
+          if (self) setFee(selfFee);
+        }
+      } catch {
+        // The server checks again when the order is placed.
+      }
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [pin, self, selfFee]);
 
   useEffect(() => {
     const t = setTimeout(() => setSavedAddr(readSaved()), 0);
@@ -89,6 +121,8 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
   const total = fee === null ? null : qty * net + fee;
   const saved = qty * (price - net);
   const soldOut = remaining !== null && remaining <= 0;
+  const outOfRange = Boolean(pin && range && range.ok === false);
+  const needLocation = Boolean(rules?.configured && rules.requirePin && !pin);
 
   async function getQuote() {
     setError('');
@@ -252,6 +286,15 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
         className="rounded-xl border border-saffron/50 bg-saffron/10 text-saffron text-sm font-bold px-4 py-3.5 hover:bg-saffron/20 transition-all disabled:opacity-50">
         {locating ? 'Getting your location...' : pin ? '📍 Update my live location' : '📍 Use my live location (easiest)'}
       </button>
+      {rules?.configured && (
+        <p className="text-[11px] text-white/50 -mt-2">
+          We deliver within {rules.maxKm} km of our kitchen{rules.requirePin ? '. Please share your live location (at the delivery place) so we can check the distance and delivery charge.' : '.'}
+        </p>
+      )}
+      {range?.ok === false && <p role="alert" className="text-sm text-red-400 -mt-1">{range.message}</p>}
+      {range?.ok && range.km !== null && range.km !== undefined && (
+        <p className="text-xs text-green-400 -mt-1">About {range.km} km away. We deliver to you ✓{range.fee !== null && range.fee !== undefined ? ` · delivery ${range.fee === 0 ? 'free' : rupees(range.fee)}` : ''}</p>
+      )}
       {pin && (
         <p className="text-xs text-saffron -mt-2">
           Live location saved ✓{' '}
@@ -283,7 +326,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
-      <button type="submit" disabled={paying || quoting || v.address.trim().length < 10}
+      <button type="submit" disabled={paying || quoting || v.address.trim().length < 10 || outOfRange || needLocation}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
         {quoting ? 'Checking delivery...' : paying ? (self ? 'Placing order...' : 'Opening payment...') : fee === null ? 'Check delivery price' : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>

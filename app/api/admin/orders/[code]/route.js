@@ -1,6 +1,6 @@
 import { orderDb } from '@/lib/supabase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
-import { bookDelivery, cancelDelivery } from '@/lib/borzo';
+import { bookDelivery, cancelDelivery, quoteDelivery, borzoConfigured } from '@/lib/borzo';
 import { refundPayment } from '@/lib/razorpay';
 import { sanitizeBill } from '@/lib/bill';
 
@@ -9,7 +9,8 @@ import { sanitizeBill } from '@/lib/bill';
 //   confirm    - you confirmed the order (the customer sees "Order confirmed")
 //   save_bill  - save an edited bill; the server recalculates the total (pay-on-delivery orders only)
 //   preparing  - the kitchen started on it
-//   out        - you are delivering it yourself now (no rider booking)
+//   out        - you (or someone you name in body.by) are delivering it now (no rider booking)
+//   borzo_quote - what Borzo would charge for this order (nothing is booked)
 //   dispatch   - the food is (nearly) ready: book the Borzo rider now
 //   delivered  - mark delivered; body.paid_by = "cash" or "upi" records how a pay-on-delivery order was paid
 //   cancel     - cancel + refund; body.restore = true puts the plate back in stock
@@ -80,7 +81,19 @@ export async function POST(request, { params }) {
   if (action === 'out') {
     if (!['new', 'paid', 'confirmed', 'preparing', 'ready'].includes(o.status)) return Response.json({ error: 'This order cannot go out for delivery now.' }, { status: 409 });
     await db.from('orders').update({ status: 'dispatched', ready_at: new Date().toISOString() }).eq('code', code);
+    const by = String(body.by || '').trim().slice(0, 60) || 'Self';
+    await db.from('orders').update({ delivered_by: by }).eq('code', code); // best effort (needs supabase-delivery-setup.sql)
     return Response.json({ ok: true });
+  }
+
+  if (action === 'borzo_quote') {
+    if (!borzoConfigured()) return Response.json({ error: 'Borzo is not connected yet (add BORZO_TOKEN, KITCHEN_ADDRESS and KITCHEN_PHONE in Vercel).' }, { status: 409 });
+    const q = await quoteDelivery({ dropAddress: o.address, thermobox: process.env.BORZO_THERMOBOX === '1' });
+    if (!q.ok) {
+      const c = (q.errors || [])[0];
+      return Response.json({ error: c === 'invalid_parameters' || c === 'route_not_found' ? 'Borzo could not find that address.' : 'Borzo could not give a price right now.' }, { status: 502 });
+    }
+    return Response.json({ ok: true, price: q.borzoPrice });
   }
 
   if (action === 'dispatch') {
@@ -106,6 +119,7 @@ export async function POST(request, { params }) {
       .from('orders')
       .update({ status: 'ready', ready_at: new Date().toISOString(), borzo_order_id: r.orderId, borzo_status: r.status })
       .eq('code', code);
+    await db.from('orders').update({ delivered_by: 'Borzo' }).eq('code', code); // best effort (needs supabase-delivery-setup.sql)
     return Response.json({ ok: true, borzoOrderId: r.orderId });
   }
 

@@ -43,6 +43,7 @@ export async function POST(request) {
     if (o.status === 'completed') {
       patch.status = 'delivered';
       patch.delivered_at = new Date().toISOString();
+      await keepCashOrderOpen(db, code, patch);
     }
     await db.from('orders').update(patch).eq('code', code).not('status', 'in', '(cancelled,refunded)');
     return Response.json({ ok: true });
@@ -63,8 +64,19 @@ export async function POST(request) {
     if (d.status === 'finished') {
       patch.status = 'delivered';
       patch.delivered_at = new Date().toISOString();
+      await keepCashOrderOpen(db, code, patch);
     }
     await db.from('orders').update(patch).eq('code', code).not('status', 'in', '(cancelled,refunded)');
   }
   return Response.json({ ok: true });
+}
+
+// A cash / UPI-on-delivery order must not close by itself: you still have to record how it was paid
+// (Delivered · got cash / UPI), otherwise your money totals would be wrong.
+async function keepCashOrderOpen(db, code, patch) {
+  const { data } = await db.from('orders').select('payment_mode').eq('code', code).maybeSingle();
+  if (data?.payment_mode === 'cod') {
+    patch.status = 'dispatched';
+    delete patch.delivered_at;
+  }
 }

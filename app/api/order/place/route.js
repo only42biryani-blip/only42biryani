@@ -2,6 +2,8 @@ import { orderDb } from '@/lib/supabase-admin';
 import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
+import { deliveryRules } from '@/lib/deliveryRules';
+import { checkDelivery } from '@/lib/delivery';
 
 // Self-delivery orders: you deliver, the customer pays cash or UPI on delivery. The server works out every
 // amount (including the offer); nothing the browser sends about prices is trusted.
@@ -26,7 +28,10 @@ export async function POST(request) {
   const v = validateOrder(body, cfg.maxQty);
   if (!v.ok) return bad(v.error);
   const o = v.value;
-  const p = priceOrder(o.qty, cfg);
+  // Delivery range and charge come from your Delivery settings in /admin, worked out here from the shared location.
+  const d = checkDelivery(await deliveryRules(), o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
+  if (!d.ok) return bad(d.message, 422);
+  const p = priceOrder(o.qty, cfg, d.fee === null ? cfg.selfFee : d.fee);
   const code = newCode();
 
   const { error } = await orderDb().rpc('place_self_order', {
@@ -39,5 +44,6 @@ export async function POST(request) {
     if (/sold_out/i.test(error.message || '')) return bad('Sorry, there are not enough plates left today.', 409);
     return bad('We could not place your order. Please try again.', 502);
   }
+  if (d.km !== null) await orderDb().from('orders').update({ distance_km: d.km }).eq('code', code); // best effort (needs supabase-delivery-setup.sql)
   return Response.json({ ok: true, code, total: p.total }, { headers: { 'Cache-Control': 'no-store' } });
 }

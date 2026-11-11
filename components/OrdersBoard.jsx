@@ -44,6 +44,7 @@ const field = 'w-full px-3 py-2 bg-black/40 text-white text-xs outline-none bord
 // Kitchen order board (admin only; every call is checked on the server against the Google admin login).
 export default function OrdersBoard({ addToast }) {
   const [orders, setOrders] = useState(null);
+  const [borzoOn, setBorzoOn] = useState(false);
   const [setup, setSetup] = useState(false);
   const [sound, setSound] = useState(false);
   const [busy, setBusy] = useState('');
@@ -69,6 +70,7 @@ export default function OrdersBoard({ addToast }) {
         return;
       }
       setSetup(false);
+      setBorzoOn(Boolean(data.borzo));
       const ids = new Set(data.orders.filter((o) => ['new', 'paid'].includes(o.status)).map((o) => o.code));
       if (seen.current && soundRef.current && [...ids].some((c) => !seen.current.has(c))) beep();
       seen.current = ids;
@@ -106,6 +108,33 @@ export default function OrdersBoard({ addToast }) {
   }
 
   // Confirm the order, then open its bill ready to print. The tab is opened first so the browser does not block it.
+  // Shows Borzo's price first; books the rider only after you agree.
+  async function sendWithBorzo(o) {
+    setBusy(`${o.code}:borzo`);
+    try {
+      const res = await fetch(`/api/admin/orders/${o.code}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
+        body: JSON.stringify({ action: 'borzo_quote' }),
+      });
+      const q = await res.json().catch(() => ({}));
+      if (!res.ok) return addToast?.(q.error || 'Could not get the Borzo price', 'error');
+      const cod = isCod(o) ? '\n\nBorzo does not collect cash for you. Ask the customer to pay you by UPI.' : '';
+      const text = `Borzo will charge you about ${money(q.price)} to deliver order ${o.code}.\nThe customer pays you ${money(o.delivery_fee || 0)} for delivery.${cod}\n\nBook the Borzo rider now?`;
+      if (!window.confirm(text)) return;
+    } finally {
+      setBusy('');
+    }
+    await act(o, 'dispatch');
+  }
+
+  function outWithSomeone(o) {
+    const by = window.prompt('Who is delivering this order? (a name, or Rapido / Porter / friend)');
+    if (by === null) return;
+    if (!by.trim()) return addToast?.('Type a name so it is recorded.', 'error');
+    act(o, 'out', { by: by.trim() });
+  }
+
   async function confirmAndPrint(o) {
     const w = window.open('', '_blank');
     const ok = await act(o, 'confirm');
@@ -256,6 +285,10 @@ export default function OrdersBoard({ addToast }) {
               </dd>
               <dt className="text-neutral-500">Address</dt><dd className="break-words whitespace-pre-wrap">{o.address}</dd>
               {o.note && (<><dt className="text-neutral-500">Note</dt><dd className="break-words">{o.note}</dd></>)}
+              {o.distance_km !== null && o.distance_km !== undefined
+                ? (<><dt className="text-neutral-500">Distance</dt><dd>~{Number(o.distance_km)} km from the kitchen</dd></>)
+                : (<><dt className="text-neutral-500">Distance</dt><dd className="text-amber-300">not checked{o.lat ? '' : ' (no location shared)'}: look at the map</dd></>)}
+              {o.delivered_by && (<><dt className="text-neutral-500">Delivery</dt><dd>{o.delivered_by}</dd></>)}
               {o.borzo_order_id && (<><dt className="text-neutral-500">Rider</dt><dd>Borzo #{o.borzo_order_id} · {o.borzo_status || 'booked'}{o.courier_name ? ` · ${o.courier_name}` : ''}</dd></>)}
             </dl>
 
@@ -285,7 +318,13 @@ export default function OrdersBoard({ addToast }) {
               {['new', 'paid', 'confirmed'].includes(o.status) && <Btn o={o} action="preparing">Start cooking</Btn>}
               {isCod(o) ? (
                 <>
-                  {['confirmed', 'preparing', 'ready'].includes(o.status) && <Btn o={o} action="out" primary>Out for delivery</Btn>}
+                  {['confirmed', 'preparing', 'ready'].includes(o.status) && <Btn o={o} action="out" primary>Out for delivery (me)</Btn>}
+                  {['confirmed', 'preparing'].includes(o.status) && (
+                    <button onClick={() => outWithSomeone(o)} disabled={Boolean(busy)} className="px-3 py-2 text-xs font-bold rounded-lg border border-white/15 text-neutral-300 hover:bg-white/5 disabled:opacity-50">Someone else delivers</button>
+                  )}
+                  {borzoOn && !o.borzo_order_id && ['confirmed', 'preparing'].includes(o.status) && (
+                    <button onClick={() => sendWithBorzo(o)} disabled={Boolean(busy)} className="px-3 py-2 text-xs font-bold rounded-lg border border-saffron/40 text-saffron hover:bg-saffron/10 disabled:opacity-50">Send with Borzo</button>
+                  )}
                   {['confirmed', 'preparing', 'ready', 'dispatched'].includes(o.status) && (
                     <>
                       <Btn o={o} action="delivered" extra={{ paid_by: 'cash' }}>Delivered · got cash</Btn>
@@ -296,6 +335,7 @@ export default function OrdersBoard({ addToast }) {
               ) : (
                 <>
                   {['paid', 'confirmed', 'preparing'].includes(o.status) && <Btn o={o} action="dispatch" primary>Food ready: book rider</Btn>}
+                  {['paid', 'confirmed', 'preparing'].includes(o.status) && <Btn o={o} action="out">I deliver it myself</Btn>}
                   {['ready', 'dispatched'].includes(o.status) && <Btn o={o} action="delivered">Mark delivered</Btn>}
                 </>
               )}

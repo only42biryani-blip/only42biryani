@@ -1,5 +1,6 @@
 import { orderDb } from '@/lib/supabase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
+import { borzoConfigured } from '@/lib/borzo';
 import { STATUS_LABEL, plateConfig, newCode, validateOrder, priceOrder } from '@/lib/orders';
 
 // Latest orders for the admin order board. Admin Google login only.
@@ -17,7 +18,7 @@ export async function GET(request) {
   const orders = (data || [])
     .filter((o) => o.status !== 'pending_payment' && o.status !== 'expired')
     .map((o) => ({ ...o, label: STATUS_LABEL[o.status] || o.status }));
-  return Response.json({ orders }, { headers: { 'Cache-Control': 'no-store' } });
+  return Response.json({ orders, borzo: borzoConfigured() }, { headers: { 'Cache-Control': 'no-store' } });
 }
 
 // Enter an order by hand (for example one that arrived on WhatsApp). Admin Google login only.

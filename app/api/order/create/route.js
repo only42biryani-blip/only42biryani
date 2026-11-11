@@ -4,6 +4,8 @@ import { orderDb } from '@/lib/supabase-admin';
 import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
+import { deliveryRules } from '@/lib/deliveryRules';
+import { checkDelivery } from '@/lib/delivery';
 
 // Starts an order: checks everything on the server (price, delivery fee, opening hours, plates left),
 // holds the plates for 10 minutes, and creates the Razorpay payment. Nothing the browser sends about
@@ -29,6 +31,10 @@ export async function POST(request) {
   const v = validateOrder(body, cfg.maxQty);
   if (!v.ok) return bad(v.error);
   const o = v.value;
+
+  // Delivery range from your Delivery settings: far-away customers are told BEFORE they pay.
+  const range = checkDelivery(await deliveryRules(), o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
+  if (!range.ok) return bad(range.message, 422);
 
   // Delivery price from Borzo, worked out here.
   const quote = await quoteDelivery({ dropAddress: o.address, thermobox: process.env.BORZO_THERMOBOX === '1' });

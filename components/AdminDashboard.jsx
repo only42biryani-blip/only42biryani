@@ -8,8 +8,9 @@ import WaitlistAddress from './WaitlistAddress';
 import ReviewsAdmin from './ReviewsAdmin';
 import KitchenControl from './KitchenControl';
 import AdminSummary from './AdminSummary';
+import DeliverySettings from './DeliverySettings';
 
-const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['launch', 'Launch']];
+const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['delivery', 'Delivery'], ['launch', 'Launch']];
 
 const TOTAL = 42;
 const SENT_KEY = 'only42-messaged';
@@ -501,6 +502,8 @@ export default function AdminDashboard() {
           </button>
         </div>
         </div>
+
+        <div className={tab === 'delivery' ? 'mb-6' : 'hidden'}><DeliverySettings addToast={addToast} /></div>
 
         {/* Launch controls */}
         <div className={`border border-white/10 rounded-2xl p-5 mb-6 ${tab === 'launch' ? '' : 'hidden'}`}>
