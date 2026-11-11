@@ -56,7 +56,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
   const [v, setV] = useState({ name: '', phone: '', email: '', address: '', note: '', qty: 1 });
   const [method, setMethod] = useState(cod ? 'cod' : 'online'); // how the customer pays
   const self = method === 'cod'; // cash / UPI on delivery
-  const [fee, setFee] = useState(selfFee);
+  const [fee, setFee] = useState(null); // delivery charge: worked out by the server (null until it answers)
   const [date, setDate] = useState(prebook ? prebook[0].value : ''); // pre-booking: tomorrow by default
   const dateLabel = prebook ? (prebook.find((d) => d.value === date)?.label || '').replace('Tomorrow · ', 'tomorrow, ') : '';
   const [pin, setPin] = useState(null); // { lat, lng } from the phone's location
@@ -82,16 +82,16 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         });
         const d = await res.json().catch(() => null);
         if (cancelled || !res.ok || !d) return;
-        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin, limitRange: d.limitRange });
+        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin, limitRange: d.limitRange, defaultFee: d.defaultFee, maxFee: d.maxFee });
         if (pin) {
           setRange(d);
           if (d.ok && d.fee !== null && d.fee !== undefined) setFee(d.fee);
         } else {
           setRange(null);
-          setFee(selfFee);
+          setFee(d.defaultFee ?? selfFee);
         }
       } catch {
-        // The server checks again when the order is placed.
+        setFee((f) => (f === null ? selfFee : f)); // the server works out the real charge when the order is placed
       }
     }, 0);
     return () => {
@@ -129,7 +129,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
   };
   const qty = Math.min(Number(v.qty) || 1, maxQty);
   const net = Math.round(price * (1 - offerPercent / 100)); // price after the offer, as the server will charge it
-  const total = qty * net + fee;
+  const total = fee === null ? null : qty * net + fee;
   const saved = qty * (price - net);
   const soldOut = !prebook && remaining !== null && remaining <= 0;
   const needLocation = Boolean(rules?.configured && rules.requirePin && !pin);
@@ -349,18 +349,22 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm grid gap-1.5">
           <div className="flex justify-between text-white/70"><span>{qty} × biryani</span><span>{rupees(qty * price)}</span></div>
           {saved > 0 && <div className="flex justify-between text-saffron"><span>{offerPercent}% OFF offer</span><span>- {rupees(saved)}</span></div>}
-          <div className="flex justify-between text-white/70"><span>Delivery</span><span>{fee === 0 ? 'Free' : rupees(fee)}</span></div>
+          <div className="flex justify-between text-white/70">
+            <span>{pin && range?.km !== null && range?.km !== undefined ? `Delivery (about ${range.km} km)` : rules?.configured && rules?.maxFee !== null && rules?.maxFee !== undefined ? 'Delivery (maximum)' : 'Delivery'}</span>
+            <span>{fee === 0 ? 'Free' : rupees(fee)}</span>
+          </div>
+          {!pin && rules?.configured && fee > 0 && <div className="text-[11px] text-saffron">Share your live location above to get the exact charge for your distance. It can be less.</div>}
           <div className="flex justify-between font-bold text-[#F5F1E8] border-t border-white/10 pt-2 mt-1"><span>Total</span><span>{rupees(total)}</span></div>
         </div>
       ) : (
-        <p className="text-xs text-white/50">Enter your address, then check the delivery price.</p>
+        <p className="text-xs text-white/50">Working out your delivery charge...</p>
       )}
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
-      <button type="submit" disabled={paying || v.address.trim().length < 10 || needLocation}
+      <button type="submit" disabled={paying || fee === null || v.address.trim().length < 10 || needLocation}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-        {paying ? (self ? 'Placing order...' : 'Opening payment...') : prebook ? `Pre-book for ${dateLabel} · ${rupees(total)}` : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
+        {total === null ? 'Working out delivery...' : paying ? (self ? 'Placing order...' : 'Opening payment...') : prebook ? `Pre-book for ${dateLabel} · ${rupees(total)}` : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>
 
       <p className="text-[11px] text-white/45 leading-relaxed">
