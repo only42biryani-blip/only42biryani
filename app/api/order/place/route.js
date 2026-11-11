@@ -1,6 +1,7 @@
 import { orderDb } from '@/lib/supabase-admin';
 import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
+import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 
 // Self-delivery orders: you deliver, the customer pays cash or UPI on delivery. The server works out every
 // amount (including the offer); nothing the browser sends about prices is trusted.
@@ -10,6 +11,7 @@ export async function POST(request) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
   if (orderingBlocker() || orderMode() !== 'self') return bad('Online ordering is not open yet.', 503);
+  if (!(await kitchenOnline())) return bad(OFFLINE_MESSAGE, 409);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
 
   let body;

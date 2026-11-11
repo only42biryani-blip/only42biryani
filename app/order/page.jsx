@@ -2,6 +2,7 @@ import Link from 'next/link';
 import OrderForm from '@/components/OrderForm';
 import { getStatus } from '@/lib/status';
 import { orderingBlocker, plateConfig, isOpenNow, orderMode } from '@/lib/orders';
+import { kitchenOnline } from '@/lib/kitchen';
 
 export const dynamic = 'force-dynamic';
 
@@ -29,6 +30,7 @@ export default async function OrderPage() {
   const cfg = plateConfig();
   const open = isOpenNow();
   const status = blocked ? null : await getStatus();
+  const online = blocked ? true : await kitchenOnline();
 
   return (
     <main className="min-h-screen bg-black text-white px-6 py-16 font-inter">
@@ -37,6 +39,8 @@ export default async function OrderPage() {
         <h1 className="font-grotesk text-4xl md:text-5xl font-extrabold tracking-tight mt-8 mb-8 text-[#F5F1E8]">Order direct</h1>
         {blocked ? (
           <Closed>Online ordering opens soon</Closed>
+        ) : !online ? (
+          <Closed>The kitchen is offline right now</Closed>
         ) : !open ? (
           <Closed>We are closed right now{cfg.hours ? ` (hours ${cfg.hours} IST)` : ''}</Closed>
         ) : (

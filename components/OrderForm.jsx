@@ -1,8 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { mapsLink } from '@/lib/maps';
+
+const SAVED_KEY = 'only42-saved-address';
+
+// Details remembered on THIS phone only (never sent anywhere except with an order).
+function readSaved() {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVED_KEY) || 'null');
+    return s && typeof s.address === 'string' && s.address.trim().length >= 10 ? s : null;
+  } catch {
+    return null;
+  }
+}
+function writeSaved(data) {
+  try {
+    if (data) localStorage.setItem(SAVED_KEY, JSON.stringify(data));
+    else localStorage.removeItem(SAVED_KEY);
+  } catch {
+    // Storage blocked: the order still works, we just cannot remember it.
+  }
+}
 
 const input =
   'w-full px-5 py-4 bg-black/40 text-[#F5F1E8] text-sm outline-none border border-white/15 focus:border-saffron focus:bg-saffron/5 transition-all placeholder:text-white/35 rounded-xl';
@@ -31,7 +52,33 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
   const [trap, setTrap] = useState('');
+  const [savedAddr, setSavedAddr] = useState(null); // address remembered on this phone
+  const [remember, setRemember] = useState(true);
   const router = useRouter();
+
+  useEffect(() => {
+    const t = setTimeout(() => setSavedAddr(readSaved()), 0);
+    return () => clearTimeout(t);
+  }, []);
+
+  function applySaved() {
+    if (!savedAddr) return;
+    const a = savedAddr;
+    setV((x) => ({ ...x, name: a.name || x.name, phone: a.phone || x.phone, email: a.email || x.email, address: a.address, note: a.note || '' }));
+    if (a.lat && a.lng) setPin({ lat: a.lat, lng: a.lng });
+    setSavedAddr(null);
+  }
+
+  function forgetSaved() {
+    writeSaved(null);
+    setSavedAddr(null);
+  }
+
+  // Called after an order is placed or payment started, so next time it is one tap.
+  function rememberDetails() {
+    if (!remember) return;
+    writeSaved({ name: v.name, phone: v.phone, email: v.email, address: v.address, note: v.note, lat: pin?.lat, lng: pin?.lng });
+  }
 
   const set = (k) => (e) => {
     setV((x) => ({ ...x, [k]: e.target.value }));
@@ -84,6 +131,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(d.error || 'Could not place your order.');
+      rememberDetails();
       router.push(`/order/${d.code}`);
     } catch (err) {
       setError(err.message || 'Something went wrong. Please try again.');
@@ -106,6 +154,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
       const o = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(o.error || 'Could not start your order.');
       if (o.fee !== fee) setFee(o.fee); // the server's price is the one that counts
+      rememberDetails();
 
       await loadRazorpay();
       const rzp = new window.Razorpay({
@@ -183,19 +232,43 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
         </select>
       </label>
 
-      <input className={input} placeholder="Your name" value={v.name} onChange={set('name')} autoComplete="name" required />
-      <input className={input} placeholder="Mobile number (10-digit)" value={v.phone} onChange={set('phone')} type="tel" autoComplete="tel" required />
-      <input className={input} placeholder="Email (optional)" value={v.email} onChange={set('email')} type="email" autoComplete="email" />
-      <textarea className={input} rows={3} placeholder="Full delivery address: flat or house, street, area, Hyderabad" value={v.address} onChange={set('address')} autoComplete="street-address" required />
-      <div className="flex flex-wrap items-center gap-3 -mt-2">
-        <button type="button" onClick={shareLocation} disabled={locating}
-          className="rounded-full border border-white/25 text-white text-xs font-semibold px-4 py-2 hover:border-saffron hover:text-saffron transition-all disabled:opacity-50">
-          {locating ? 'Getting location...' : pin ? 'Update my location' : '📍 Use my current location'}
-        </button>
-        {pin && <span className="text-xs text-saffron">Location saved ✓ <button type="button" onClick={() => setPin(null)} className="underline text-white/50 ml-1">remove</button></span>}
-        {!pin && <span className="text-[11px] text-white/40">Helps us find you faster (optional)</span>}
-      </div>
-      <input className={input} placeholder="Landmark or gate code (optional)" value={v.note} onChange={set('note')} maxLength={200} />
+      {savedAddr && (
+        <div className="rounded-xl border border-saffron/40 bg-saffron/5 p-4 text-sm">
+          <div className="text-[11px] tracking-[2px] uppercase text-saffron font-semibold mb-1">Saved on this phone</div>
+          <div className="text-[#F5F1E8] font-semibold">{savedAddr.name}{savedAddr.phone ? ` · ${savedAddr.phone}` : ''}</div>
+          <div className="text-white/70 text-xs mt-1 leading-relaxed">{savedAddr.address}</div>
+          <div className="flex flex-wrap gap-2 mt-3">
+            <button type="button" onClick={applySaved} className="rounded-full bg-accent text-black text-xs font-bold px-5 py-2.5">Use this address</button>
+            <button type="button" onClick={forgetSaved} className="rounded-full border border-white/25 text-white/80 text-xs font-semibold px-4 py-2.5 hover:border-saffron">Type a new one</button>
+          </div>
+        </div>
+      )}
+
+      <input className={input} name="name" placeholder="Your name" value={v.name} onChange={set('name')} autoComplete="name" required />
+      <input className={input} name="tel" placeholder="Mobile number (10-digit)" value={v.phone} onChange={set('phone')} type="tel" inputMode="numeric" autoComplete="tel" required />
+      <input className={input} name="email" placeholder="Email (optional)" value={v.email} onChange={set('email')} type="email" autoComplete="email" />
+
+      <button type="button" onClick={shareLocation} disabled={locating}
+        className="rounded-xl border border-saffron/50 bg-saffron/10 text-saffron text-sm font-bold px-4 py-3.5 hover:bg-saffron/20 transition-all disabled:opacity-50">
+        {locating ? 'Getting your location...' : pin ? '📍 Update my live location' : '📍 Use my live location (easiest)'}
+      </button>
+      {pin && (
+        <p className="text-xs text-saffron -mt-2">
+          Live location saved ✓{' '}
+          <a href={mapsLink(pin)} target="_blank" rel="noopener noreferrer" className="underline">check on map</a>
+          <button type="button" onClick={() => setPin(null)} className="underline text-white/50 ml-2">remove</button>
+          <span className="block text-white/50 mt-1">Now just type your flat or house number and street below.</span>
+        </p>
+      )}
+
+      <textarea className={input} name="street-address" rows={3} value={v.address} onChange={set('address')} autoComplete="street-address" required
+        placeholder={pin ? 'Flat / house number, building, street, area' : 'Full address: flat or house, street, area, Hyderabad (tap here: your phone may suggest a saved address)'} />
+      <input className={input} name="landmark" placeholder="Landmark or gate code (optional)" value={v.note} onChange={set('note')} maxLength={200} autoComplete="off" />
+
+      <label className="flex items-center gap-2 text-xs text-white/60 cursor-pointer">
+        <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)} className="h-4 w-4 accent-[#D4FF3F]" />
+        Remember my details on this phone for next time
+      </label>
 
       {fee !== null ? (
         <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm grid gap-1.5">

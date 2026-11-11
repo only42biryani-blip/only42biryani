@@ -6,6 +6,10 @@ import { ADMIN_EMAIL, ZOMATO_URL } from '@/lib/config';
 import OrdersBoard from './OrdersBoard';
 import WaitlistAddress from './WaitlistAddress';
 import ReviewsAdmin from './ReviewsAdmin';
+import KitchenControl from './KitchenControl';
+import AdminSummary from './AdminSummary';
+
+const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['launch', 'Launch']];
 
 const TOTAL = 42;
 const SENT_KEY = 'only42-messaged';
@@ -47,9 +51,9 @@ function waNumber(phone) {
   return digits;
 }
 
-function Shell({ children }) {
+function Shell({ children, top }) {
   return (
-    <div className="min-h-screen bg-[#050505] flex items-center justify-center p-6 relative"
+    <div className={`min-h-screen bg-[#050505] flex justify-center p-3 sm:p-6 relative ${top ? 'items-start' : 'items-center'}`}
       style={{ background: 'radial-gradient(circle at top right, rgba(212,255,63,0.05), transparent 40%), radial-gradient(circle at bottom left, rgba(255,107,0,0.05), transparent 35%), #050505' }}>
       {children}
     </div>
@@ -88,7 +92,9 @@ export default function AdminDashboard() {
     return () => clearInterval(id);
   }, []);
 
-  const [showWaitlist, setShowWaitlist] = useState(false);
+  const [tab, setTab] = useState('today');
+  const [reviewsWaiting, setReviewsWaiting] = useState(null);
+  const [waitlistCount, setWaitlistCount] = useState(null);
   const [waitlist, setWaitlist] = useState([]);
   const [waitlistState, setWaitlistState] = useState('idle');
   const [dbTotal, setDbTotal] = useState(null); // what the database says the total is, to spot missing rows
@@ -136,8 +142,33 @@ export default function AdminDashboard() {
 
   async function signOut() {
     await supabase.auth.signOut();
-    setShowWaitlist(false);
+    setTab('today');
     setWaitlist([]);
+    setWaitlistState('idle');
+  }
+
+  // Small counts for the Today tab and the tab badges.
+  useEffect(() => {
+    if (!isAdmin) return;
+    let cancelled = false;
+    const t = setTimeout(async () => {
+      const [r, w] = await Promise.all([
+        supabase.from('reviews').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+        supabase.rpc('waitlist_count'),
+      ]);
+      if (cancelled) return;
+      setReviewsWaiting(r.error ? 0 : r.count || 0);
+      setWaitlistCount(w.error || w.data === null || w.data === undefined ? null : Number(w.data));
+    }, 0);
+    return () => {
+      cancelled = true;
+      clearTimeout(t);
+    };
+  }, [isAdmin, tab]);
+
+  function openTab(next) {
+    setTab(next);
+    if (next === 'waitlist' && waitlistState === 'idle') loadWaitlist();
   }
 
   // Inventory polling (admin only)
@@ -289,12 +320,6 @@ export default function AdminDashboard() {
     setWaitlistState('ready');
   }
 
-  function toggleWaitlist() {
-    const next = !showWaitlist;
-    setShowWaitlist(next);
-    if (next) loadWaitlist();
-  }
-
   async function deleteEntry(entry) {
     if (!window.confirm(`Remove ${entry.name || entry.email} from the waitlist?`)) return;
     const { data, error } = await supabase.from('waitlist').delete().eq('id', entry.id).select();
@@ -405,12 +430,32 @@ export default function AdminDashboard() {
 
   // Admin
   return (
-    <Shell>
-      <div className={`${card} max-w-lg`}>
+    <Shell top>
+      <div className={`${card} max-w-3xl !p-5 sm:!p-8`}>
         <Brand subtitle="Live Kitchen Dashboard" />
 
+        {/* Daily Go online / offline switch and bell: always visible on every tab */}
+        <KitchenControl addToast={addToast} />
+
+        <nav className="flex gap-2 overflow-x-auto mb-6 pb-1 sticky top-0 z-20 bg-[#121212] py-2 -mx-1 px-1" aria-label="Dashboard sections">
+          {TABS.map(([key, label]) => {
+            const badge = key === 'reviews' ? reviewsWaiting : key === 'waitlist' ? waitlistCount : 0;
+            return (
+              <button key={key} onClick={() => openTab(key)} aria-current={tab === key ? 'page' : undefined}
+                className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${tab === key ? 'bg-accent text-black border-accent' : 'border-white/10 text-neutral-300 hover:bg-white/[0.08]'}`}>
+                {label}
+                {badge > 0 && <span className={`ml-2 text-[10px] px-1.5 py-0.5 rounded-full ${tab === key ? 'bg-black/20' : 'bg-white/10'}`}>{badge}</span>}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* Today: numbers, setup checklist and the plate count */}
+        <div className={tab === 'today' ? '' : 'hidden'}>
+        <AdminSummary inventory={inventory} total={TOTAL} onGoTab={openTab} reviewsWaiting={reviewsWaiting} waitlistCount={waitlistCount} />
+
         {/* Plates */}
-        <div className="text-center mb-6">
+        <div className="text-center mt-8 mb-6">
           <span className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-full border mb-3"
             style={{ color, borderColor: `${color}33`, background: `${color}11` }}>
             <span className="w-2 h-2 rounded-full bg-current animate-live-pulse" />
@@ -453,9 +498,10 @@ export default function AdminDashboard() {
             Declare Sold Out
           </button>
         </div>
+        </div>
 
         {/* Launch controls */}
-        <div className="border border-white/10 rounded-2xl p-5 mb-6">
+        <div className={`border border-white/10 rounded-2xl p-5 mb-6 ${tab === 'launch' ? '' : 'hidden'}`}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-grotesk text-lg font-bold">Launch controls</h3>
             <span className={`text-[10px] font-bold px-3 py-1 rounded-full border tracking-widest
@@ -500,17 +546,13 @@ export default function AdminDashboard() {
         </div>
 
         {/* Direct orders (kitchen board) */}
-        <OrdersBoard addToast={addToast} />
+        <div className={tab === 'orders' ? '' : 'hidden'}><OrdersBoard addToast={addToast} /></div>
 
         {/* Customer reviews: approve / hide / delete, and the two on-off switches */}
-        <ReviewsAdmin addToast={addToast} />
+        <div className={tab === 'reviews' ? '' : 'hidden'}><ReviewsAdmin addToast={addToast} /></div>
 
         {/* Waitlist */}
-        <button onClick={toggleWaitlist} className={`w-full py-4 text-sm mb-4 ${ghostBtn} rounded-2xl`}>
-          {showWaitlist ? 'Hide Waitlist' : 'View Waitlist'}
-        </button>
-
-        {showWaitlist && (
+        {tab === 'waitlist' && (
           <div className="mb-4">
             {waitlistState === 'ready' && (
               <div className="grid grid-cols-2 gap-2 mb-3 text-center">

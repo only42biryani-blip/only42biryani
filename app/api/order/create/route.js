@@ -3,6 +3,7 @@ import { createRazorpayOrder } from '@/lib/razorpay';
 import { orderDb } from '@/lib/supabase-admin';
 import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
+import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 
 // Starts an order: checks everything on the server (price, delivery fee, opening hours, plates left),
 // holds the plates for 10 minutes, and creates the Razorpay payment. Nothing the browser sends about
@@ -13,6 +14,7 @@ export async function POST(request) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
   if (orderingBlocker() || orderMode() === 'self') return bad('Online ordering is not open yet.', 503);
+  if (!(await kitchenOnline())) return bad(OFFLINE_MESSAGE, 409);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
 
   let body;
