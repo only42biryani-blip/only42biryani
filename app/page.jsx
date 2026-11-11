@@ -17,6 +17,7 @@ import HowItWorks from '@/components/HowItWorks';
 import ThePlate from '@/components/ThePlate';
 import Story from '@/components/Story';
 import Faq from '@/components/Faq';
+import Reviews from '@/components/Reviews';
 import Footer from '@/components/Footer';
 
 const manifesto = [
@@ -181,6 +182,7 @@ export default async function HomePage() {
         <ThePlate />
         <HowItWorks />
         <Story />
+        <Reviews />
         <Faq launched={status.launched} />
         <FollowSection />
 

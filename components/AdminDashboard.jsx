@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { ADMIN_EMAIL, ZOMATO_URL } from '@/lib/config';
 import OrdersBoard from './OrdersBoard';
 import WaitlistAddress from './WaitlistAddress';
+import ReviewsAdmin from './ReviewsAdmin';
 
 const TOTAL = 42;
 const SENT_KEY = 'only42-messaged';
@@ -500,6 +501,9 @@ export default function AdminDashboard() {
 
         {/* Direct orders (kitchen board) */}
         <OrdersBoard addToast={addToast} />
+
+        {/* Customer reviews: approve / hide / delete, and the two on-off switches */}
+        <ReviewsAdmin addToast={addToast} />
 
         {/* Waitlist */}
         <button onClick={toggleWaitlist} className={`w-full py-4 text-sm mb-4 ${ghostBtn} rounded-2xl`}>
