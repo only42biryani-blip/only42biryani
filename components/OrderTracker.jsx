@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 
 const STEPS = [
   ['paid', 'Order received'],
+  ['confirmed', 'Order confirmed'],
   ['preparing', 'Being prepared'],
   ['ready', 'Packed'],
   ['dispatched', 'Out for delivery'],

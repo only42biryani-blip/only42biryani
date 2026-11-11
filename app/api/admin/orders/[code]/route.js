@@ -2,9 +2,12 @@ import { orderDb } from '@/lib/supabase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
 import { bookDelivery, cancelDelivery } from '@/lib/borzo';
 import { refundPayment } from '@/lib/razorpay';
+import { sanitizeBill } from '@/lib/bill';
 
 // Kitchen actions on one order. Admin Google login only.
 //   GET        - the full order (used by the bill page)
+//   confirm    - you confirmed the order (the customer sees "Order confirmed")
+//   save_bill  - save an edited bill; the server recalculates the total (pay-on-delivery orders only)
 //   preparing  - the kitchen started on it
 //   out        - you are delivering it yourself now (no rider booking)
 //   dispatch   - the food is (nearly) ready: book the Borzo rider now
@@ -38,20 +41,50 @@ export async function POST(request, { params }) {
   const { data: o } = await db.from('orders').select('*').eq('code', code).maybeSingle();
   if (!o) return Response.json({ error: 'Order not found.' }, { status: 404 });
 
+  if (action === 'confirm') {
+    if (!['new', 'paid'].includes(o.status)) return Response.json({ error: 'Only a new order can be confirmed.' }, { status: 409 });
+    const { error } = await db.from('orders').update({ status: 'confirmed' }).eq('code', code);
+    if (error) return Response.json({ error: 'Could not confirm the order. Try again.' }, { status: 502 });
+    await db.from('orders').update({ confirmed_at: new Date().toISOString() }).eq('code', code); // best effort: needs supabase-bill-setup.sql
+    return Response.json({ ok: true });
+  }
+
+  if (action === 'save_bill') {
+    if (o.payment_mode !== 'cod') return Response.json({ error: 'This order was paid online, so its bill cannot be changed.' }, { status: 409 });
+    if (['cancelled', 'refunded'].includes(o.status)) return Response.json({ error: 'This order is closed.' }, { status: 409 });
+    const v = sanitizeBill(body.bill);
+    if (!v.ok) return Response.json({ error: v.error }, { status: 400 });
+    const t = v.totals;
+    const patch = {
+      bill: v.bill,
+      total: t.total,
+      delivery_fee: t.fee,
+      discount_amount: t.discountAmount,
+      discount_percent: t.discountType === 'percent' ? t.discountValue : 0,
+    };
+    if (v.bill.customer.name) patch.customer_name = v.bill.customer.name;
+    if (v.bill.customer.phone.length >= 10) patch.customer_phone = v.bill.customer.phone;
+    if (v.bill.customer.address.length >= 5) patch.address = v.bill.customer.address;
+    const { error } = await db.from('orders').update(patch).eq('code', code);
+    if (error) return Response.json({ error: 'Could not save the bill. Has supabase-bill-setup.sql been run?' }, { status: 502 });
+    const { data: fresh } = await db.from('orders').select('*').eq('code', code).maybeSingle();
+    return Response.json({ ok: true, order: fresh });
+  }
+
   if (action === 'preparing') {
-    if (!['paid', 'new'].includes(o.status)) return Response.json({ error: 'Only a new or paid order can be started.' }, { status: 409 });
+    if (!['paid', 'new', 'confirmed'].includes(o.status)) return Response.json({ error: 'Only a new or confirmed order can be started.' }, { status: 409 });
     await db.from('orders').update({ status: 'preparing' }).eq('code', code);
     return Response.json({ ok: true });
   }
 
   if (action === 'out') {
-    if (!['new', 'paid', 'preparing', 'ready'].includes(o.status)) return Response.json({ error: 'This order cannot go out for delivery now.' }, { status: 409 });
+    if (!['new', 'paid', 'confirmed', 'preparing', 'ready'].includes(o.status)) return Response.json({ error: 'This order cannot go out for delivery now.' }, { status: 409 });
     await db.from('orders').update({ status: 'dispatched', ready_at: new Date().toISOString() }).eq('code', code);
     return Response.json({ ok: true });
   }
 
   if (action === 'dispatch') {
-    if (!['new', 'paid', 'preparing'].includes(o.status)) return Response.json({ error: 'This order cannot be dispatched now.' }, { status: 409 });
+    if (!['new', 'paid', 'confirmed', 'preparing'].includes(o.status)) return Response.json({ error: 'This order cannot be dispatched now.' }, { status: 409 });
     if (o.borzo_order_id) return Response.json({ error: 'A rider is already booked for this order.' }, { status: 409 });
     const r = await bookDelivery({
       dropAddress: o.address,

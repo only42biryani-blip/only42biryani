@@ -1,4 +1,4 @@
--- Self-delivery orders + waitlist addresses. Run in Supabase Dashboard -> SQL Editor -> New query.
+-- Self-delivery orders, confirm order, editable bills + waitlist addresses. Run in Supabase Dashboard -> SQL Editor -> New query.
 -- Safe to run more than once. Run AFTER supabase-orders-setup.sql.
 
 -- 1. Extra order columns: where, how much was discounted, and how it was paid.
@@ -10,6 +10,8 @@ alter table public.orders add column if not exists mrp numeric(10,2);           
 alter table public.orders add column if not exists discount_percent numeric(5,2) not null default 0;
 alter table public.orders add column if not exists discount_amount numeric(10,2) not null default 0;
 alter table public.orders add column if not exists source text;                         -- website | manual (typed in by you)
+alter table public.orders add column if not exists confirmed_at timestamptz;             -- when you confirmed the order
+alter table public.orders add column if not exists bill jsonb;                           -- the edited bill (items, discount, notes), if you changed it
 
 -- 2. Place an order that is paid on delivery (cash or UPI). Takes the plates at once; no payment hold.
 create or replace function public.place_self_order(
@@ -40,7 +42,7 @@ begin
 end;
 $$;
 
--- 3. Cancel now also understands the new 'new' status (cash orders waiting for you).
+-- 3. Cancel now also understands the new 'new' and 'confirmed' statuses.
 create or replace function public.cancel_order(p_code text, p_restore boolean)
 returns text
 language plpgsql
@@ -51,7 +53,7 @@ begin
   select * into o from public.orders where code = p_code for update;
   if not found then return 'not_found'; end if;
   if o.status in ('cancelled','refunded','expired','delivered') then return o.status; end if;
-  if p_restore and o.status in ('pending_payment','new','paid','preparing','ready','dispatched') then
+  if p_restore and o.status in ('pending_payment','new','confirmed','paid','preparing','ready','dispatched') then
     update public.inventory set remaining = least(42, remaining + o.qty) where id = 1;
   end if;
   update public.orders set status = 'cancelled' where id = o.id;

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { mapsLink } from '@/lib/maps';
 
-const ACTIVE = ['new', 'paid', 'preparing', 'ready', 'dispatched', 'paid_needs_refund'];
+const ACTIVE = ['new', 'confirmed', 'paid', 'preparing', 'ready', 'dispatched', 'paid_needs_refund'];
 
 function beep() {
   try {
@@ -99,8 +99,19 @@ export default function OrdersBoard({ addToast }) {
       if (!res.ok) addToast?.(data.error || 'Action failed', 'error');
       else addToast?.(data.note ? `Done. ${data.note}` : 'Done', 'success');
       await load();
+      return res.ok;
     } finally {
       setBusy('');
+    }
+  }
+
+  // Confirm the order, then open its bill ready to print. The tab is opened first so the browser does not block it.
+  async function confirmAndPrint(o) {
+    const w = window.open('', '_blank');
+    const ok = await act(o, 'confirm');
+    if (w) {
+      if (ok) w.location.href = `/admin/bill?code=${o.code}&print=1`;
+      else w.close();
     }
   }
 
@@ -136,7 +147,7 @@ export default function OrdersBoard({ addToast }) {
 
   function copyList() {
     const text = list
-      .filter((o) => ['new', 'paid', 'preparing', 'ready', 'dispatched'].includes(o.status))
+      .filter((o) => ['new', 'confirmed', 'paid', 'preparing', 'ready', 'dispatched'].includes(o.status))
       .map((o, i) => [
         `${i + 1}) ${o.customer_name} - ${o.customer_phone.replace(/^91/, '')}`,
         `   ${o.address}`,
@@ -252,14 +263,30 @@ export default function OrdersBoard({ addToast }) {
               <button className={small} onClick={() => copy(`${o.customer_name} - ${o.customer_phone.replace(/^91/, '')}\n${o.address}\n${mapsLink(o)}`, addToast, 'Address copied')}>Copy address</button>
               <a className={small} href={mapsLink(o)} target="_blank" rel="noopener noreferrer">Open in Maps</a>
               <a className={small} href={`/admin/bill?code=${o.code}`} target="_blank" rel="noopener noreferrer">Print bill</a>
+              {isCod(o) && <a className={small} href={`/admin/bill?code=${o.code}&edit=1`} target="_blank" rel="noopener noreferrer">Edit bill</a>}
+              {o.status === 'confirmed' && (
+                <a className={small} target="_blank" rel="noopener noreferrer"
+                  href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, your Only42Biryani order ${o.code} is confirmed. ${o.qty} plate${o.qty > 1 ? 's' : ''}, total ${money(o.total)}${isCod(o) ? '. Please keep cash or UPI ready.' : '.'} We will deliver soon. Thank you!`)}`}>
+                  WhatsApp: confirmed
+                </a>
+              )}
             </div>
 
             <div className="flex flex-wrap gap-2 mt-3">
-              {['new', 'paid'].includes(o.status) && <Btn o={o} action="preparing">Start cooking</Btn>}
+              {['new', 'paid'].includes(o.status) && (
+                <>
+                  <Btn o={o} action="confirm" primary>Confirm order</Btn>
+                  <button onClick={() => confirmAndPrint(o)} disabled={Boolean(busy)}
+                    className="px-3 py-2 text-xs font-bold rounded-lg bg-white text-black border border-white hover:bg-accent disabled:opacity-50">
+                    Confirm + print bill
+                  </button>
+                </>
+              )}
+              {['new', 'paid', 'confirmed'].includes(o.status) && <Btn o={o} action="preparing">Start cooking</Btn>}
               {isCod(o) ? (
                 <>
-                  {['new', 'preparing', 'ready'].includes(o.status) && <Btn o={o} action="out" primary>Out for delivery</Btn>}
-                  {['new', 'preparing', 'ready', 'dispatched'].includes(o.status) && (
+                  {['confirmed', 'preparing', 'ready'].includes(o.status) && <Btn o={o} action="out" primary>Out for delivery</Btn>}
+                  {['confirmed', 'preparing', 'ready', 'dispatched'].includes(o.status) && (
                     <>
                       <Btn o={o} action="delivered" extra={{ paid_by: 'cash' }}>Delivered · got cash</Btn>
                       <Btn o={o} action="delivered" extra={{ paid_by: 'upi' }}>Delivered · got UPI</Btn>
@@ -268,7 +295,7 @@ export default function OrdersBoard({ addToast }) {
                 </>
               ) : (
                 <>
-                  {['paid', 'preparing'].includes(o.status) && <Btn o={o} action="dispatch" primary>Food ready: book rider</Btn>}
+                  {['paid', 'confirmed', 'preparing'].includes(o.status) && <Btn o={o} action="dispatch" primary>Food ready: book rider</Btn>}
                   {['ready', 'dispatched'].includes(o.status) && <Btn o={o} action="delivered">Mark delivered</Btn>}
                 </>
               )}
