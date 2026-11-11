@@ -1,7 +1,7 @@
 import { quoteDelivery } from '@/lib/borzo';
 import { createRazorpayOrder } from '@/lib/razorpay';
 import { orderDb } from '@/lib/supabase-admin';
-import { plateConfig, orderingBlocker, isOpenNow, newCode, validateOrder } from '@/lib/orders';
+import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 
 // Starts an order: checks everything on the server (price, delivery fee, opening hours, plates left),
@@ -12,7 +12,7 @@ export async function POST(request) {
   if (rateLimited('order-create', clientIp(request), 6, 10 * 60 * 1000)) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
-  if (orderingBlocker()) return bad('Online ordering is not open yet.', 503);
+  if (orderingBlocker() || orderMode() === 'self') return bad('Online ordering is not open yet.', 503);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
 
   let body;
@@ -40,12 +40,13 @@ export async function POST(request) {
   }
 
   const fee = quote.customerFee;
-  const total = o.qty * cfg.price + fee;
+  const pr = priceOrder(o.qty, cfg, fee); // applies the offer; the total is always worked out here
+  const total = pr.total;
   const code = newCode();
   const db = orderDb();
 
   const { error } = await db.rpc('place_order_hold', {
-    p_code: code, p_qty: o.qty, p_plate_price: cfg.price, p_delivery_fee: fee, p_total: total,
+    p_code: code, p_qty: o.qty, p_plate_price: pr.net, p_delivery_fee: fee, p_total: total,
     p_name: o.name, p_phone: o.phone, p_email: o.email, p_address: o.address, p_note: o.note, p_hold_minutes: 10,
   });
   if (error) {
@@ -59,11 +60,15 @@ export async function POST(request) {
     return bad('We could not start the payment. Please try again.', 502);
   }
   await db.from('orders').update({ razorpay_order_id: rz.id }).eq('code', code);
+  // Extra details for the bill. Saved separately so a missing column can never block a payment.
+  await db.from('orders').update({
+    mrp: pr.mrp, discount_percent: pr.discountPercent, discount_amount: pr.discountAmount, lat: o.lat, lng: o.lng, source: 'website',
+  }).eq('code', code);
 
   return Response.json(
     {
       code, razorpayOrderId: rz.id, amountPaise: rz.amountPaise, keyId: process.env.RAZORPAY_KEY_ID,
-      total, fee, plateTotal: o.qty * cfg.price, holdMinutes: 10, name: o.name, phone: o.phone, email: o.email,
+      total, fee, plateTotal: o.qty * pr.net, discountAmount: pr.discountAmount, holdMinutes: 10, name: o.name, phone: o.phone, email: o.email,
     },
     { headers: { 'Cache-Control': 'no-store' } }
   );

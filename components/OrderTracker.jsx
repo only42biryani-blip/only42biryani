@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 
 const STEPS = [
-  ['paid', 'Payment received'],
+  ['paid', 'Order received'],
   ['preparing', 'Being prepared'],
-  ['ready', 'Packed, rider coming'],
+  ['ready', 'Packed'],
   ['dispatched', 'Out for delivery'],
   ['delivered', 'Delivered'],
 ];
@@ -37,7 +37,7 @@ export default function OrderTracker({ code }) {
   if (error && !o) return <p className="text-red-400 text-sm">{error}</p>;
   if (!o) return <p className="text-white/60 text-sm">Loading your order...</p>;
 
-  const idx = STEPS.findIndex(([s]) => s === o.status);
+  const idx = STEPS.findIndex(([s]) => s === (o.status === 'new' ? 'paid' : o.status));
   const closed = ['cancelled', 'refunded', 'expired', 'paid_needs_refund'].includes(o.status);
 
   return (
@@ -79,6 +79,11 @@ export default function OrderTracker({ code }) {
         <p className="text-white/60 text-sm mt-4">
           Your rider: {o.courierName}
           {o.courierPhone && <> · <a href={`tel:+${o.courierPhone.replace(/^\+/, '')}`} className="underline">call</a></>}
+        </p>
+      )}
+      {!closed && o.paymentMode === 'cod' && o.status !== 'delivered' && (
+        <p className="text-sm text-saffron mt-5">
+          Please keep ₹{Number(o.total).toLocaleString('en-IN')} ready. Pay in cash or UPI when your order arrives.
         </p>
       )}
       <p className="text-[11px] text-white/40 mt-6">Keep this page or your order code ({o.code}). It updates by itself.</p>

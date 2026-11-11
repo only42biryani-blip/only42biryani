@@ -11,11 +11,9 @@ export async function GET(request, { params }) {
   const db = orderDb();
   if (!db) return bad('Not available.', 503);
 
-  const { data: o } = await db
-    .from('orders')
-    .select('code,status,qty,total,customer_name,borzo_status,tracking_url,courier_name,courier_phone,created_at,hold_expires_at')
-    .eq('code', code)
-    .maybeSingle();
+  const base = 'code,status,qty,total,customer_name,borzo_status,tracking_url,courier_name,courier_phone,created_at,hold_expires_at';
+  let { data: o, error } = await db.from('orders').select(`${base},payment_mode`).eq('code', code).maybeSingle();
+  if (error) ({ data: o } = await db.from('orders').select(base).eq('code', code).maybeSingle()); // before the self-delivery SQL has been run
   if (!o) return bad('Order not found.', 404);
 
   return Response.json(
@@ -25,6 +23,7 @@ export async function GET(request, { params }) {
       label: STATUS_LABEL[o.status] || o.status,
       qty: o.qty,
       total: o.total,
+      paymentMode: o.payment_mode,
       firstName: String(o.customer_name || '').split(' ')[0],
       trackingUrl: o.tracking_url,
       courierName: o.courier_name,

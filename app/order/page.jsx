@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import OrderForm from '@/components/OrderForm';
 import { getStatus } from '@/lib/status';
-import { orderingBlocker, plateConfig, isOpenNow } from '@/lib/orders';
+import { orderingBlocker, plateConfig, isOpenNow, orderMode } from '@/lib/orders';
 
 export const dynamic = 'force-dynamic';
 
@@ -40,7 +40,8 @@ export default async function OrderPage() {
         ) : !open ? (
           <Closed>We are closed right now{cfg.hours ? ` (hours ${cfg.hours} IST)` : ''}</Closed>
         ) : (
-          <OrderForm price={cfg.price} maxQty={cfg.maxQty} remaining={status?.remaining ?? null} hoursText={cfg.hours} />
+          <OrderForm price={cfg.price} maxQty={cfg.maxQty} remaining={status?.remaining ?? null} hoursText={cfg.hours}
+            mode={orderMode()} offerPercent={cfg.offerPercent} selfFee={cfg.selfFee} />
         )}
       </div>
     </main>

@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
 
-const StatusContext = createContext({ launched: false, launchAt: null, banner: null, remaining: null });
+const StatusContext = createContext({ launched: false, launchAt: null, banner: null, remaining: null, directOrdering: false });
 
 export function useStatus() {
   return useContext(StatusContext);

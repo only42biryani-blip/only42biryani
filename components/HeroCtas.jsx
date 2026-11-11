@@ -1,18 +1,28 @@
 'use client';
 
+import Link from 'next/link';
 import { useStatus } from './StatusProvider';
 import LaunchCountdown from './LaunchCountdown';
 import OrderButtons from './OrderButtons';
-import { INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL } from '@/lib/config';
+import { INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL, OFFER } from '@/lib/config';
 
 // The launch moment, front and centre in the hero: a countdown plus the one thing
 // we want visitors to do (join before launch, order after it).
 export default function HeroCtas() {
-  const { launched, launchAt } = useStatus();
+  const { launched, launchAt, directOrdering } = useStatus();
 
   return (
     <div className="flex flex-col gap-6">
       {!launched && <LaunchCountdown target={launchAt} label="Launching in" />}
+
+      {directOrdering && (
+        <div className="flex flex-wrap gap-3">
+          <Link href="/order"
+            className="rounded-full bg-accent text-black font-bold text-sm px-8 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all">
+            Order now{OFFER?.percent ? ` · ${OFFER.percent}% OFF` : ''}
+          </Link>
+        </div>
+      )}
 
       {launched ? (
         <OrderButtons />

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { ADMIN_EMAIL, ZOMATO_URL } from '@/lib/config';
 import OrdersBoard from './OrdersBoard';
+import WaitlistAddress from './WaitlistAddress';
 
 const TOTAL = 42;
 const SENT_KEY = 'only42-messaged';
@@ -322,7 +323,7 @@ export default function AdminDashboard() {
       return;
     }
     // Every column the database has, known ones first, so nothing is left out of the export.
-    const known = ['id', 'name', 'phone', 'email', 'created_at', 'consent', 'consented_at', 'source'];
+    const known = ['id', 'name', 'phone', 'email', 'created_at', 'consent', 'consented_at', 'source', 'address', 'address_updated_at'];
     const extra = [...new Set(waitlist.flatMap((e) => Object.keys(e)))].filter((k) => !known.includes(k));
     const cols = [...known, ...extra];
     const rows = [
@@ -345,7 +346,7 @@ export default function AdminDashboard() {
 
   const q = query.trim().toLowerCase();
   const visible = q
-    ? waitlist.filter((e) => [e.name, e.phone, e.email, e.source].some((v) => String(v || '').toLowerCase().includes(q)))
+    ? waitlist.filter((e) => [e.name, e.phone, e.email, e.source, e.address].some((v) => String(v || '').toLowerCase().includes(q)))
     : waitlist;
   const todayStr = new Date().toLocaleDateString('en-IN');
   const stats = {
@@ -355,7 +356,7 @@ export default function AdminDashboard() {
     older: waitlist.filter((e) => e.consent === null || e.consent === undefined).length,
     today: waitlist.filter((e) => e.created_at && new Date(e.created_at).toLocaleDateString('en-IN') === todayStr).length,
   };
-  const KNOWN = ['id', 'name', 'phone', 'email', 'created_at', 'consent', 'consented_at', 'source'];
+  const KNOWN = ['id', 'name', 'phone', 'email', 'created_at', 'consent', 'consented_at', 'source', 'address', 'address_updated_at'];
   const fmtDateTime = (v) => (v ? new Date(v).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
 
   const toastLayer = (
@@ -597,6 +598,12 @@ export default function AdminDashboard() {
                         Remove
                       </button>
                     </div>
+                    <WaitlistAddress
+                      key={`${e.id}-${e.address || ''}`}
+                      entry={e}
+                      addToast={addToast}
+                      onSaved={(row) => setWaitlist((list) => list.map((x) => (x.id === row.id ? { ...x, ...row } : x)))}
+                    />
                     {!noConsent && (
                       <a href={link} target="_blank" rel="noopener noreferrer" onClick={() => markSent(e.id)}
                         className={`inline-block mt-3 text-xs font-bold px-3 py-2 rounded-lg border transition-colors

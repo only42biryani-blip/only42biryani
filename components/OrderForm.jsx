@@ -21,9 +21,12 @@ function loadRazorpay() {
 const rupees = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
 
 // Order form: details -> delivery price -> pay. All prices are re-checked by the server before payment.
-export default function OrderForm({ price, maxQty, remaining, hoursText }) {
+export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 'online', offerPercent = 0, selfFee = 0 }) {
   const [v, setV] = useState({ name: '', phone: '', email: '', address: '', note: '', qty: 1 });
-  const [fee, setFee] = useState(null);
+  const self = mode === 'self';
+  const [fee, setFee] = useState(self ? selfFee : null);
+  const [pin, setPin] = useState(null); // { lat, lng } from the phone's location
+  const [locating, setLocating] = useState(false);
   const [quoting, setQuoting] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
@@ -32,10 +35,12 @@ export default function OrderForm({ price, maxQty, remaining, hoursText }) {
 
   const set = (k) => (e) => {
     setV((x) => ({ ...x, [k]: e.target.value }));
-    if (k === 'address') setFee(null);
+    if (k === 'address' && !self) setFee(null);
   };
   const qty = Math.min(Number(v.qty) || 1, maxQty);
-  const total = fee === null ? null : qty * price + fee;
+  const net = Math.round(price * (1 - offerPercent / 100)); // price after the offer, as the server will charge it
+  const total = fee === null ? null : qty * net + fee;
+  const saved = qty * (price - net);
   const soldOut = remaining !== null && remaining <= 0;
 
   async function getQuote() {
@@ -57,8 +62,38 @@ export default function OrderForm({ price, maxQty, remaining, hoursText }) {
     }
   }
 
+  function shareLocation() {
+    setError('');
+    if (!navigator.geolocation) return setError('Your browser cannot share location. Please type the address.');
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => { setPin({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); },
+      () => { setLocating(false); setError('Could not get your location. Allow location access, or just type the address.'); },
+      { enableHighAccuracy: true, timeout: 15000 }
+    );
+  }
+
+  async function placeSelfOrder() {
+    setError('');
+    setPaying(true);
+    try {
+      const res = await fetch('/api/order/place', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...v, qty, lat: pin?.lat, lng: pin?.lng, website: trap }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(d.error || 'Could not place your order.');
+      router.push(`/order/${d.code}`);
+    } catch (err) {
+      setError(err.message || 'Something went wrong. Please try again.');
+      setPaying(false);
+    }
+  }
+
   async function pay(e) {
     e.preventDefault();
+    if (self) return placeSelfOrder();
     if (fee === null) return getQuote();
     setError('');
     setPaying(true);
@@ -66,7 +101,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText }) {
       const res = await fetch('/api/order/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...v, qty, website: trap }),
+        body: JSON.stringify({ ...v, qty, lat: pin?.lat, lng: pin?.lng, website: trap }),
       });
       const o = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(o.error || 'Could not start your order.');
@@ -130,7 +165,11 @@ export default function OrderForm({ price, maxQty, remaining, hoursText }) {
       <div className="flex items-baseline justify-between gap-3">
         <div>
           <div className="text-saffron text-xs font-semibold tracking-[3px] uppercase">Chicken dum biryani</div>
-          <div className="font-grotesk text-3xl font-extrabold text-[#F5F1E8]">{rupees(price)} <span className="text-base text-white/50 font-normal">per plate</span></div>
+          <div className="font-grotesk text-3xl font-extrabold text-[#F5F1E8]">
+            {offerPercent > 0 && <span className="text-xl text-white/40 line-through mr-2">{rupees(price)}</span>}
+            {rupees(net)} <span className="text-base text-white/50 font-normal">per plate</span>
+          </div>
+          {offerPercent > 0 && <div className="inline-block mt-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-accent text-black">{offerPercent}% OFF</div>}
         </div>
         {remaining !== null && <div className="text-xs text-white/60">{remaining} left today</div>}
       </div>
@@ -148,12 +187,21 @@ export default function OrderForm({ price, maxQty, remaining, hoursText }) {
       <input className={input} placeholder="Mobile number (10-digit)" value={v.phone} onChange={set('phone')} type="tel" autoComplete="tel" required />
       <input className={input} placeholder="Email (optional)" value={v.email} onChange={set('email')} type="email" autoComplete="email" />
       <textarea className={input} rows={3} placeholder="Full delivery address: flat or house, street, area, Hyderabad" value={v.address} onChange={set('address')} autoComplete="street-address" required />
+      <div className="flex flex-wrap items-center gap-3 -mt-2">
+        <button type="button" onClick={shareLocation} disabled={locating}
+          className="rounded-full border border-white/25 text-white text-xs font-semibold px-4 py-2 hover:border-saffron hover:text-saffron transition-all disabled:opacity-50">
+          {locating ? 'Getting location...' : pin ? 'Update my location' : '📍 Use my current location'}
+        </button>
+        {pin && <span className="text-xs text-saffron">Location saved ✓ <button type="button" onClick={() => setPin(null)} className="underline text-white/50 ml-1">remove</button></span>}
+        {!pin && <span className="text-[11px] text-white/40">Helps us find you faster (optional)</span>}
+      </div>
       <input className={input} placeholder="Landmark or gate code (optional)" value={v.note} onChange={set('note')} maxLength={200} />
 
       {fee !== null ? (
         <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm grid gap-1.5">
           <div className="flex justify-between text-white/70"><span>{qty} × biryani</span><span>{rupees(qty * price)}</span></div>
-          <div className="flex justify-between text-white/70"><span>Delivery</span><span>{rupees(fee)}</span></div>
+          {saved > 0 && <div className="flex justify-between text-saffron"><span>{offerPercent}% OFF offer</span><span>- {rupees(saved)}</span></div>}
+          <div className="flex justify-between text-white/70"><span>Delivery</span><span>{fee === 0 ? 'Free' : rupees(fee)}</span></div>
           <div className="flex justify-between font-bold text-[#F5F1E8] border-t border-white/10 pt-2 mt-1"><span>Total</span><span>{rupees(total)}</span></div>
         </div>
       ) : (
@@ -164,13 +212,15 @@ export default function OrderForm({ price, maxQty, remaining, hoursText }) {
 
       <button type="submit" disabled={paying || quoting || v.address.trim().length < 10}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-        {quoting ? 'Checking delivery...' : paying ? 'Opening payment...' : fee === null ? 'Check delivery price' : `Pay ${rupees(total)}`}
+        {quoting ? 'Checking delivery...' : paying ? (self ? 'Placing order...' : 'Opening payment...') : fee === null ? 'Check delivery price' : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>
 
       <p className="text-[11px] text-white/45 leading-relaxed">
-        Pay securely online (UPI, card, netbanking). Your plates are held for 10 minutes while you pay.
+        {self
+          ? 'Pay cash or UPI when your order arrives. No advance payment needed.'
+          : 'Pay securely online (UPI, card, netbanking). Your plates are held for 10 minutes while you pay.'}
         {hoursText ? ` Ordering hours (IST): ${hoursText}.` : ''}{' '}
-        By paying you agree to our <Link href="/terms" className="underline">Terms</Link>,{' '}
+        {self ? 'By placing your order you agree to our' : 'By paying you agree to our'} <Link href="/terms" className="underline">Terms</Link>,{' '}
         <Link href="/refund-policy" className="underline">Refund policy</Link> and{' '}
         <Link href="/delivery-policy" className="underline">Delivery policy</Link>.
       </p>

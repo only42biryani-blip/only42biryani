@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
+import { mapsLink } from '@/lib/maps';
 
-const ACTIVE = ['paid', 'preparing', 'ready', 'dispatched', 'paid_needs_refund'];
+const ACTIVE = ['new', 'paid', 'preparing', 'ready', 'dispatched', 'paid_needs_refund'];
 
 function beep() {
   try {
@@ -25,12 +26,29 @@ function beep() {
   }
 }
 
+const money = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
+const isCod = (o) => o.payment_mode === 'cod';
+
+async function copy(text, addToast, what = 'Copied') {
+  try {
+    await navigator.clipboard.writeText(text);
+    addToast?.(what, 'success');
+  } catch {
+    window.prompt('Copy this:', text);
+  }
+}
+
+const EMPTY = { name: '', phone: '', address: '', qty: 1, note: '', discountPercent: '', deliveryFee: '' };
+const field = 'w-full px-3 py-2 bg-black/40 text-white text-xs outline-none border border-white/15 focus:border-accent rounded-lg placeholder:text-white/30';
+
 // Kitchen order board (admin only; every call is checked on the server against the Google admin login).
 export default function OrdersBoard({ addToast }) {
   const [orders, setOrders] = useState(null);
   const [setup, setSetup] = useState(false);
   const [sound, setSound] = useState(false);
   const [busy, setBusy] = useState('');
+  const [showNew, setShowNew] = useState(false);
+  const [draft, setDraft] = useState(EMPTY);
   const seen = useRef(null);
   const soundRef = useRef(false);
   useEffect(() => {
@@ -51,7 +69,7 @@ export default function OrdersBoard({ addToast }) {
         return;
       }
       setSetup(false);
-      const ids = new Set(data.orders.filter((o) => o.status === 'paid').map((o) => o.code));
+      const ids = new Set(data.orders.filter((o) => ['new', 'paid'].includes(o.status)).map((o) => o.code));
       if (seen.current && soundRef.current && [...ids].some((c) => !seen.current.has(c))) beep();
       seen.current = ids;
       setOrders(data.orders);
@@ -86,8 +104,29 @@ export default function OrdersBoard({ addToast }) {
     }
   }
 
+  async function createManual(e) {
+    e.preventDefault();
+    setBusy('manual');
+    try {
+      const res = await fetch('/api/admin/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await token()}` },
+        body: JSON.stringify(draft),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return addToast?.(data.error || 'Could not save the order', 'error');
+      addToast?.(`Order ${data.code} saved · ${money(data.total)}`, 'success');
+      setDraft(EMPTY);
+      setShowNew(false);
+      await load();
+    } finally {
+      setBusy('');
+    }
+  }
+
   function cancel(o) {
-    if (!window.confirm(`Cancel order ${o.code} and refund ₹${o.total}? This cannot be undone.`)) return;
+    const refundText = o.razorpay_payment_id ? ` and refund ${money(o.total)}` : '';
+    if (!window.confirm(`Cancel order ${o.code}${refundText}? This cannot be undone.`)) return;
     const restore = window.confirm('Put the plate(s) back in stock?\n\nOK = yes (food was NOT cooked for this order)\nCancel = no');
     act(o, 'cancel', { restore });
   }
@@ -95,9 +134,23 @@ export default function OrdersBoard({ addToast }) {
   const list = (orders || []).filter((o) => ACTIVE.includes(o.status));
   const done = (orders || []).filter((o) => !ACTIVE.includes(o.status)).slice(0, 10);
 
-  const Btn = ({ o, action, children, primary }) => (
+  function copyList() {
+    const text = list
+      .filter((o) => ['new', 'paid', 'preparing', 'ready', 'dispatched'].includes(o.status))
+      .map((o, i) => [
+        `${i + 1}) ${o.customer_name} - ${o.customer_phone.replace(/^91/, '')}`,
+        `   ${o.address}`,
+        `   Map: ${mapsLink(o)}`,
+        `   ${o.qty} plate${o.qty > 1 ? 's' : ''} · ${isCod(o) ? `COLLECT ${money(o.total)} (cash/UPI)` : 'PAID online'}${o.note ? ` · Note: ${o.note}` : ''}`,
+      ].join('\n'))
+      .join('\n\n');
+    if (!text) return addToast?.('No open orders to copy', 'error');
+    copy(text, addToast, 'Delivery list copied');
+  }
+
+  const Btn = ({ o, action, children, primary, extra }) => (
     <button
-      onClick={() => act(o, action)}
+      onClick={() => act(o, action, extra)}
       disabled={Boolean(busy)}
       className={`px-3 py-2 text-xs font-bold rounded-lg border transition-colors disabled:opacity-50 ${
         primary ? 'bg-accent text-black border-accent hover:bg-white' : 'border-white/15 text-neutral-300 hover:bg-white/5'
@@ -106,6 +159,8 @@ export default function OrdersBoard({ addToast }) {
       {busy === `${o.code}:${action}` ? '...' : children}
     </button>
   );
+
+  const small = 'px-2.5 py-1 text-[11px] rounded-md border border-white/15 text-neutral-300 hover:bg-white/5';
 
   return (
     <div className="border border-white/10 rounded-2xl p-5 mb-6">
@@ -117,9 +172,45 @@ export default function OrdersBoard({ addToast }) {
         </label>
       </div>
 
+      <div className="flex flex-wrap gap-2 mb-4">
+        <button onClick={() => setShowNew((v) => !v)} className="px-3 py-2 text-xs font-bold rounded-lg bg-accent text-black hover:bg-white">
+          {showNew ? 'Close' : '+ New order (WhatsApp / phone)'}
+        </button>
+        <button onClick={copyList} className="px-3 py-2 text-xs font-bold rounded-lg border border-white/15 text-neutral-300 hover:bg-white/5">
+          Copy delivery list
+        </button>
+      </div>
+
+      {showNew && (
+        <form onSubmit={createManual} className="grid gap-2 mb-4 p-3 rounded-xl border border-white/10 bg-white/[0.02]">
+          <p className="text-[11px] text-neutral-500">For orders that came on WhatsApp or a call. Paste the address or the Google Maps link they sent.</p>
+          <input className={field} placeholder="Customer name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} required />
+          <input className={field} placeholder="Mobile number (10-digit)" value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })} type="tel" required />
+          <textarea className={field} rows={3} placeholder="Address or Google Maps link (paste what they sent)" value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} required />
+          <div className="grid grid-cols-3 gap-2">
+            <label className="grid gap-1 text-[10px] text-neutral-500">Plates
+              <select className={field} value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })}>
+                {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-[10px] text-neutral-500">Offer % (blank = usual)
+              <input className={field} inputMode="numeric" value={draft.discountPercent} onChange={(e) => setDraft({ ...draft, discountPercent: e.target.value })} placeholder="auto" />
+            </label>
+            <label className="grid gap-1 text-[10px] text-neutral-500">Delivery ₹ (blank = usual)
+              <input className={field} inputMode="numeric" value={draft.deliveryFee} onChange={(e) => setDraft({ ...draft, deliveryFee: e.target.value })} placeholder="auto" />
+            </label>
+          </div>
+          <input className={field} placeholder="Note (landmark, flat number...) optional" value={draft.note} onChange={(e) => setDraft({ ...draft, note: e.target.value })} />
+          <button type="submit" disabled={busy === 'manual'} className="px-3 py-2 text-xs font-bold rounded-lg bg-accent text-black hover:bg-white disabled:opacity-50">
+            {busy === 'manual' ? 'Saving...' : 'Save order'}
+          </button>
+        </form>
+      )}
+
       {setup && (
         <p className="text-xs text-neutral-400 leading-relaxed">
-          Direct ordering is not set up yet. Run <code className="text-accent">supabase-orders-setup.sql</code> in Supabase and add
+          Direct ordering is not set up yet. Run <code className="text-accent">supabase-orders-setup.sql</code> and{' '}
+          <code className="text-accent">supabase-selfdelivery-setup.sql</code> in Supabase and add
           <code className="text-accent"> SUPABASE_SERVICE_ROLE_KEY</code> in Vercel.
         </p>
       )}
@@ -131,29 +222,61 @@ export default function OrdersBoard({ addToast }) {
           <div key={o.code} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-4 text-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <div className="font-bold">{o.code} · {o.qty} plate{o.qty > 1 ? 's' : ''} · ₹{o.total}</div>
+                <div className="font-bold">{o.code} · {o.qty} plate{o.qty > 1 ? 's' : ''} · {money(o.total)}</div>
                 <div className="text-[11px] text-neutral-500">
-                  {new Date(o.created_at).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })} · {o.label}
+                  {new Date(o.created_at).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })} · {o.label}
+                  {o.source === 'manual' ? ' · typed in' : ''}
                 </div>
               </div>
-              {o.status === 'paid' && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent text-black">NEW</span>}
+              {['new', 'paid'].includes(o.status) && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent text-black">NEW</span>}
+            </div>
+
+            <div className={`mt-2 text-xs font-bold ${isCod(o) ? 'text-amber-300' : 'text-green-400'}`}>
+              {isCod(o) ? `Collect ${money(o.total)} on delivery (cash or UPI)` : 'Paid online'}
+              {Number(o.discount_amount) > 0 && <span className="font-normal text-neutral-400"> · {Number(o.discount_percent)}% off saved {money(o.discount_amount)}</span>}
             </div>
 
             <dl className="mt-2 grid grid-cols-[64px_1fr] gap-x-3 gap-y-1 text-xs">
               <dt className="text-neutral-500">Name</dt><dd>{o.customer_name}</dd>
-              <dt className="text-neutral-500">Phone</dt><dd><a href={`tel:+${o.customer_phone}`} className="hover:text-accent">+{o.customer_phone}</a></dd>
-              <dt className="text-neutral-500">Address</dt><dd className="break-words">{o.address}</dd>
+              <dt className="text-neutral-500">Phone</dt>
+              <dd className="flex flex-wrap gap-x-3">
+                <a href={`tel:+${o.customer_phone}`} className="hover:text-accent">+{o.customer_phone}</a>
+                <a href={`https://wa.me/${o.customer_phone}`} target="_blank" rel="noopener noreferrer" className="text-green-400">WhatsApp</a>
+              </dd>
+              <dt className="text-neutral-500">Address</dt><dd className="break-words whitespace-pre-wrap">{o.address}</dd>
               {o.note && (<><dt className="text-neutral-500">Note</dt><dd className="break-words">{o.note}</dd></>)}
               {o.borzo_order_id && (<><dt className="text-neutral-500">Rider</dt><dd>Borzo #{o.borzo_order_id} · {o.borzo_status || 'booked'}{o.courier_name ? ` · ${o.courier_name}` : ''}</dd></>)}
             </dl>
 
+            <div className="flex flex-wrap gap-2 mt-2">
+              <button className={small} onClick={() => copy(`${o.customer_name} - ${o.customer_phone.replace(/^91/, '')}\n${o.address}\n${mapsLink(o)}`, addToast, 'Address copied')}>Copy address</button>
+              <a className={small} href={mapsLink(o)} target="_blank" rel="noopener noreferrer">Open in Maps</a>
+              <a className={small} href={`/admin/bill?code=${o.code}`} target="_blank" rel="noopener noreferrer">Print bill</a>
+            </div>
+
             <div className="flex flex-wrap gap-2 mt-3">
-              {o.status === 'paid' && <Btn o={o} action="preparing">Start cooking</Btn>}
-              {['paid', 'preparing'].includes(o.status) && <Btn o={o} action="dispatch" primary>Food ready: book rider</Btn>}
-              {['ready', 'dispatched'].includes(o.status) && <Btn o={o} action="delivered">Mark delivered</Btn>}
+              {['new', 'paid'].includes(o.status) && <Btn o={o} action="preparing">Start cooking</Btn>}
+              {isCod(o) ? (
+                <>
+                  {['new', 'preparing', 'ready'].includes(o.status) && <Btn o={o} action="out" primary>Out for delivery</Btn>}
+                  {['new', 'preparing', 'ready', 'dispatched'].includes(o.status) && (
+                    <>
+                      <Btn o={o} action="delivered" extra={{ paid_by: 'cash' }}>Delivered · got cash</Btn>
+                      <Btn o={o} action="delivered" extra={{ paid_by: 'upi' }}>Delivered · got UPI</Btn>
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
+                  {['paid', 'preparing'].includes(o.status) && <Btn o={o} action="dispatch" primary>Food ready: book rider</Btn>}
+                  {['ready', 'dispatched'].includes(o.status) && <Btn o={o} action="delivered">Mark delivered</Btn>}
+                </>
+              )}
               {o.status !== 'paid_needs_refund' && (
                 <button onClick={() => cancel(o)} disabled={Boolean(busy)}
-                  className="px-3 py-2 text-xs rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50">Cancel + refund</button>
+                  className="px-3 py-2 text-xs rounded-lg border border-red-500/30 text-red-400 hover:bg-red-500/10 disabled:opacity-50">
+                  {isCod(o) ? 'Cancel order' : 'Cancel + refund'}
+                </button>
               )}
               {o.status === 'paid_needs_refund' && <span className="text-xs text-red-400">Refund this payment in the Razorpay dashboard.</span>}
             </div>
@@ -165,7 +288,13 @@ export default function OrdersBoard({ addToast }) {
         <details className="mt-4 text-xs text-neutral-500">
           <summary className="cursor-pointer">Recently closed ({done.length})</summary>
           <ul className="mt-2 grid gap-1">
-            {done.map((o) => (<li key={o.code}>{o.code} · {o.customer_name} · ₹{o.total} · {o.label}</li>))}
+            {done.map((o) => (
+              <li key={o.code}>
+                {o.code} · {o.customer_name} · {money(o.total)} · {o.label}
+                {o.paid_by ? ` (${o.paid_by})` : ''} ·{' '}
+                <a className="underline" href={`/admin/bill?code=${o.code}`} target="_blank" rel="noopener noreferrer">bill</a>
+              </li>
+            ))}
           </ul>
         </details>
       )}

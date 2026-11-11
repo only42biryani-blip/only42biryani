@@ -4,10 +4,23 @@ import { bookDelivery, cancelDelivery } from '@/lib/borzo';
 import { refundPayment } from '@/lib/razorpay';
 
 // Kitchen actions on one order. Admin Google login only.
+//   GET        - the full order (used by the bill page)
 //   preparing  - the kitchen started on it
+//   out        - you are delivering it yourself now (no rider booking)
 //   dispatch   - the food is (nearly) ready: book the Borzo rider now
-//   delivered  - mark delivered by hand (if no callback arrived)
+//   delivered  - mark delivered; body.paid_by = "cash" or "upi" records how a pay-on-delivery order was paid
 //   cancel     - cancel + refund; body.restore = true puts the plate back in stock
+export async function GET(request, { params }) {
+  const denied = await requireAdmin(request);
+  if (denied) return denied;
+  const db = orderDb();
+  if (!db) return Response.json({ error: 'Ordering database is not set up yet.' }, { status: 503 });
+  const { code } = await params;
+  const { data: o } = await db.from('orders').select('*').eq('code', code).maybeSingle();
+  if (!o) return Response.json({ error: 'Order not found.' }, { status: 404 });
+  return Response.json({ order: o }, { headers: { 'Cache-Control': 'no-store' } });
+}
+
 export async function POST(request, { params }) {
   const denied = await requireAdmin(request);
   if (denied) return denied;
@@ -26,13 +39,19 @@ export async function POST(request, { params }) {
   if (!o) return Response.json({ error: 'Order not found.' }, { status: 404 });
 
   if (action === 'preparing') {
-    if (o.status !== 'paid') return Response.json({ error: 'Only a paid order can be started.' }, { status: 409 });
+    if (!['paid', 'new'].includes(o.status)) return Response.json({ error: 'Only a new or paid order can be started.' }, { status: 409 });
     await db.from('orders').update({ status: 'preparing' }).eq('code', code);
     return Response.json({ ok: true });
   }
 
+  if (action === 'out') {
+    if (!['new', 'paid', 'preparing', 'ready'].includes(o.status)) return Response.json({ error: 'This order cannot go out for delivery now.' }, { status: 409 });
+    await db.from('orders').update({ status: 'dispatched', ready_at: new Date().toISOString() }).eq('code', code);
+    return Response.json({ ok: true });
+  }
+
   if (action === 'dispatch') {
-    if (!['paid', 'preparing'].includes(o.status)) return Response.json({ error: 'This order cannot be dispatched now.' }, { status: 409 });
+    if (!['new', 'paid', 'preparing'].includes(o.status)) return Response.json({ error: 'This order cannot be dispatched now.' }, { status: 409 });
     if (o.borzo_order_id) return Response.json({ error: 'A rider is already booked for this order.' }, { status: 409 });
     const r = await bookDelivery({
       dropAddress: o.address,
@@ -58,7 +77,14 @@ export async function POST(request, { params }) {
   }
 
   if (action === 'delivered') {
-    await db.from('orders').update({ status: 'delivered', delivered_at: new Date().toISOString() }).eq('code', code);
+    const patch = { status: 'delivered', delivered_at: new Date().toISOString() };
+    if (o.payment_mode === 'cod') {
+      const by = String(body.paid_by || '').toLowerCase();
+      if (by !== 'cash' && by !== 'upi') return Response.json({ error: 'Choose how the customer paid: cash or UPI.' }, { status: 400 });
+      patch.paid_by = by;
+      patch.paid_at = new Date().toISOString();
+    }
+    await db.from('orders').update(patch).eq('code', code);
     return Response.json({ ok: true });
   }
 
