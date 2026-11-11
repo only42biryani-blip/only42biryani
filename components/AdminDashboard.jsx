@@ -317,6 +317,7 @@ export default function AdminDashboard() {
     setWaitlist(rows);
     const { data: total } = await supabase.rpc('waitlist_count');
     setDbTotal(total === null || total === undefined ? null : Number(total));
+    setWaitlistCount(rows.length);
     setWaitlistState('ready');
   }
 
@@ -328,6 +329,7 @@ export default function AdminDashboard() {
       return;
     }
     setWaitlist((list) => list.filter((e) => e.id !== entry.id));
+    setWaitlistCount((c) => (c === null ? c : Math.max(0, c - 1)));
     addToast('Entry removed', 'success');
   }
 

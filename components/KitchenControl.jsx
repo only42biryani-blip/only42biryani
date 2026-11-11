@@ -2,9 +2,18 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { bellDue, closingInstant, isOnline, prettyTime, validTime } from '@/lib/kitchenTime';
+import { bellDue, closingInstant, isOnline, istNow, prettyTime, validTime, RING_WINDOW_MIN } from '@/lib/kitchenTime';
 
 const SNOOZE_MIN = 10;
+const QUIET_KEY = 'only42-bell-quiet-day';
+
+function readQuietDay() {
+  try {
+    return localStorage.getItem(QUIET_KEY) || '';
+  } catch {
+    return '';
+  }
+}
 
 // A three-beep bell with the browser's built-in audio. The browser needs one tap on the page first.
 function useBell() {
@@ -46,6 +55,7 @@ export default function KitchenControl({ addToast }) {
   const [busy, setBusy] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const [snoozedUntil, setSnoozedUntil] = useState(0);
+  const [quietDay, setQuietDay] = useState('');
   const [times, setTimes] = useState({ close: '22:00', reminder: '10:30' });
   const [timesDirty, setTimesDirty] = useState(false);
   const [notif, setNotif] = useState('unsupported');
@@ -80,7 +90,7 @@ export default function KitchenControl({ addToast }) {
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => setNotif(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission), 0);
+    const t = setTimeout(() => { setNotif(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission); setQuietDay(readQuietDay()); }, 0);
     const onTap = () => {
       bell.unlock();
       setAudioOk(true);
@@ -94,7 +104,18 @@ export default function KitchenControl({ addToast }) {
 
   const online = row ? isOnline(row.online_until, now) : false;
   const due = row ? bellDue({ onlineUntil: row.online_until, reminderTime: row.reminder_time || '10:30', closeTime: row.close_time || '22:00', now }) : false;
-  const ringing = due && now.getTime() >= snoozedUntil;
+  const quietToday = quietDay === istNow(now).date;
+  const ringing = due && !quietToday && now.getTime() >= snoozedUntil;
+
+  function stayOfflineToday() {
+    const day = istNow(new Date()).date;
+    try {
+      localStorage.setItem(QUIET_KEY, day);
+    } catch {
+      // Not saved; it still stays quiet until you reload.
+    }
+    setQuietDay(day);
+  }
 
   // Ring every 25 seconds while due; change the tab title so a background tab is noticed too.
   useEffect(() => {
@@ -202,6 +223,9 @@ export default function KitchenControl({ addToast }) {
           <button onClick={() => setSnoozedUntil(Date.now() + SNOOZE_MIN * 60000)} className="text-xs px-3 py-1.5 rounded-lg bg-black/40 hover:bg-black/60">
             Snooze {SNOOZE_MIN} min
           </button>
+          <button onClick={stayOfflineToday} className="text-xs px-3 py-1.5 rounded-lg bg-black/40 hover:bg-black/60">
+            Stay offline today (stop bell)
+          </button>
         </div>
       )}
 
@@ -246,7 +270,7 @@ export default function KitchenControl({ addToast }) {
           </div>
           <p className="leading-relaxed text-neutral-500">
             The bell rings only while this dashboard is open in a browser tab (keep it open on the kitchen phone or laptop, with sound on and the screen awake).
-            It rings every 25 seconds from the bell time until you go online, snooze it, or the closing time passes.
+            It is a morning reminder: it rings every 25 seconds for {RING_WINDOW_MIN} minutes from the bell time, only while you are still offline, then stays quiet all day.
             {!audioOk && ' Tap anywhere on this page once so the browser allows sound.'}
             {notif === 'denied' && ' Pop-up alerts are blocked in this browser.'}
             {notif === 'granted' && ' Pop-up alerts are on.'}
