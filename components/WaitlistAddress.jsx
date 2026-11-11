@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { mapsLink } from '@/lib/maps';
 
@@ -9,6 +9,51 @@ export default function WaitlistAddress({ entry, onSaved, addToast }) {
   const [text, setText] = useState(entry.address || '');
   const [saving, setSaving] = useState(false);
   const dirty = text.trim() !== (entry.address || '').trim();
+
+  // Remember which waitlist people already have an order made, so a second tap does not create a duplicate.
+  const KEY = 'only42-wl-orders';
+  const [made, setMade] = useState(null);
+  const [creating, setCreating] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { setMade(JSON.parse(localStorage.getItem(KEY) || '{}')[entry.id] || null); } catch { /* storage blocked */ }
+    }, 0);
+    return () => clearTimeout(t);
+  }, [entry.id]);
+
+  async function createAndPrint(again = false) {
+    if (made && !again) {
+      window.open(`/admin/bill?code=${made}&print=1`, '_blank');
+      return;
+    }
+    const answer = window.prompt(`How many plates for ${entry.name}?`, '1');
+    if (answer === null) return;
+    const qty = Number(answer);
+    if (!Number.isInteger(qty) || qty < 1 || qty > 5) return addToast?.('Enter 1 to 5 plates', 'error');
+    const w = window.open('', '_blank'); // opened first so the browser does not block it
+    setCreating(true);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
+      const r = await fetch('/api/admin/orders', {
+        method: 'POST', headers,
+        body: JSON.stringify({ name: entry.name, phone: entry.phone, address: entry.address, qty, note: 'From waitlist' }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) { w?.close(); return addToast?.(d.error || 'Could not create the order', 'error'); }
+      await fetch(`/api/admin/orders/${d.code}`, { method: 'POST', headers, body: JSON.stringify({ action: 'confirm' }) });
+      try {
+        const all = JSON.parse(localStorage.getItem(KEY) || '{}');
+        all[entry.id] = d.code;
+        localStorage.setItem(KEY, JSON.stringify(all));
+      } catch { /* storage blocked */ }
+      setMade(d.code);
+      addToast?.(`Order ${d.code} confirmed · total Rs ${d.total}`, 'success');
+      if (w) w.location.href = `/admin/bill?code=${d.code}&print=1`;
+    } finally {
+      setCreating(false);
+    }
+  }
 
   async function save() {
     setSaving(true);
@@ -56,6 +101,11 @@ export default function WaitlistAddress({ entry, onSaved, addToast }) {
           <>
             <button onClick={copy} className={small}>Copy name + address</button>
             <a href={mapsLink(entry)} target="_blank" rel="noopener noreferrer" className={small}>Open in Maps</a>
+            <button onClick={() => createAndPrint(false)} disabled={creating}
+              className="px-3 py-1.5 text-[11px] font-bold rounded-md bg-accent text-black border border-accent hover:bg-white disabled:opacity-50">
+              {creating ? 'Creating...' : made ? `Print bill (${made})` : 'Confirm order + print bill'}
+            </button>
+            {made && <button onClick={() => createAndPrint(true)} disabled={creating} className={small}>New order</button>}
           </>
         )}
       </div>
