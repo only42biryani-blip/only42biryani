@@ -1,7 +1,8 @@
 import Link from 'next/link';
 import OrderForm from '@/components/OrderForm';
 import { getStatus } from '@/lib/status';
-import { orderingBlocker, plateConfig, isOpenNow, orderMode } from '@/lib/orders';
+import { orderingBlocker, plateConfig, isOpenNow } from '@/lib/orders';
+import { paymentOptions, onlineAllowed } from '@/lib/payment';
 import { kitchenOnline } from '@/lib/kitchen';
 
 export const dynamic = 'force-dynamic';
@@ -25,12 +26,16 @@ function Closed({ children }) {
   );
 }
 
-export default async function OrderPage() {
+export default async function OrderPage({ searchParams }) {
+  const sp = (await searchParams) || {};
   const blocked = orderingBlocker();
   const cfg = plateConfig();
   const open = isOpenNow();
   const status = blocked ? null : await getStatus();
   const online = blocked ? true : await kitchenOnline();
+  const pay = blocked ? { cod: false, online: 'off' } : await paymentOptions();
+  const token = typeof sp.t === 'string' ? sp.t : '';
+  const canPayOnline = onlineAllowed(pay, token);
 
   return (
     <main className="min-h-screen bg-black text-white px-6 py-16 font-inter">
@@ -43,9 +48,12 @@ export default async function OrderPage() {
           <Closed>The kitchen is offline right now</Closed>
         ) : !open ? (
           <Closed>We are closed right now{cfg.hours ? ` (hours ${cfg.hours} IST)` : ''}</Closed>
+        ) : !pay.cod && !canPayOnline ? (
+          <Closed>Ordering is paused for now</Closed>
         ) : (
           <OrderForm price={cfg.price} maxQty={cfg.maxQty} remaining={status?.remaining ?? null} hoursText={cfg.hours}
-            mode={orderMode()} offerPercent={cfg.offerPercent} selfFee={cfg.selfFee} />
+            cod={pay.cod} online={canPayOnline} testToken={canPayOnline && pay.online === 'test' ? token : ''}
+            offerPercent={cfg.offerPercent} selfFee={cfg.selfFee} />
         )}
       </div>
     </main>

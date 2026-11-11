@@ -1,11 +1,11 @@
-import { quoteDelivery } from '@/lib/borzo';
 import { createRazorpayOrder } from '@/lib/razorpay';
 import { orderDb } from '@/lib/supabase-admin';
-import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
+import { plateConfig, orderingBlocker, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 import { deliveryRules } from '@/lib/deliveryRules';
-import { checkDelivery } from '@/lib/delivery';
+import { paymentOptions, onlineAllowed } from '@/lib/payment';
+import { checkDelivery, capFee } from '@/lib/delivery';
 
 // Starts an order: checks everything on the server (price, delivery fee, opening hours, plates left),
 // holds the plates for 10 minutes, and creates the Razorpay payment. Nothing the browser sends about
@@ -15,7 +15,7 @@ export async function POST(request) {
   if (rateLimited('order-create', clientIp(request), 6, 10 * 60 * 1000)) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
-  if (orderingBlocker() || orderMode() === 'self') return bad('Online ordering is not open yet.', 503);
+  if (orderingBlocker()) return bad('Online ordering is not open yet.', 503);
   if (!(await kitchenOnline())) return bad(OFFLINE_MESSAGE, 409);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
 
@@ -26,6 +26,9 @@ export async function POST(request) {
     return bad('Invalid request.');
   }
   if (body.website) return Response.json({ ok: true }); // honeypot
+  const payOpts = await paymentOptions();
+  if (!onlineAllowed(payOpts, body.t)) return bad('Online payment is not available right now. Please choose cash on delivery.', 409);
+  const isTest = payOpts.online !== 'on'; // only people with your test link get here when it is "test"
 
   const cfg = plateConfig();
   const v = validateOrder(body, cfg.maxQty);
@@ -33,21 +36,12 @@ export async function POST(request) {
   const o = v.value;
 
   // Delivery range from your Delivery settings: far-away customers are told BEFORE they pay.
-  const range = checkDelivery(await deliveryRules(), o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
+  const rules = await deliveryRules();
+  const range = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
   if (!range.ok) return bad(range.message, 422);
 
-  // Delivery price from Borzo, worked out here.
-  const quote = await quoteDelivery({ dropAddress: o.address, thermobox: process.env.BORZO_THERMOBOX === '1' });
-  if (!quote.ok) {
-    const code = (quote.errors || [])[0];
-    if (code === 'invalid_parameters' || code === 'route_not_found') return bad('We could not find that address. Check it and try again.', 422);
-    return bad('We could not price the delivery right now. Please try again.', 502);
-  }
-  if (cfg.maxFee && quote.customerFee > cfg.maxFee) {
-    return bad('Sorry, that address is outside our delivery area.', 422);
-  }
-
-  const fee = quote.customerFee;
+  // Delivery charge: from your Delivery settings (distance) when the kitchen location is set, else the default charge.
+  const fee = range.fee !== null ? range.fee : capFee(cfg.selfFee, rules);
   const pr = priceOrder(o.qty, cfg, fee); // applies the offer; the total is always worked out here
   const total = pr.total;
   const code = newCode();
@@ -70,8 +64,10 @@ export async function POST(request) {
   await db.from('orders').update({ razorpay_order_id: rz.id }).eq('code', code);
   // Extra details for the bill. Saved separately so a missing column can never block a payment.
   await db.from('orders').update({
-    mrp: pr.mrp, discount_percent: pr.discountPercent, discount_amount: pr.discountAmount, lat: o.lat, lng: o.lng, source: 'website',
+    mrp: pr.mrp, discount_percent: pr.discountPercent, discount_amount: pr.discountAmount, lat: o.lat, lng: o.lng, source: isTest ? 'test' : 'website',
   }).eq('code', code);
+
+  if (range.km !== null) await db.from('orders').update({ distance_km: range.km }).eq('code', code); // best effort (needs supabase-delivery-setup.sql)
 
   return Response.json(
     {

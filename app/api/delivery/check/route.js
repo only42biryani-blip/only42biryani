@@ -16,7 +16,8 @@ export async function POST(request) {
   const rules = await deliveryRules();
   const lat = Number(body.lat), lng = Number(body.lng);
   const hasPin = body.lat !== undefined && body.lat !== null && body.lat !== '' && Number.isFinite(lat) && Number.isFinite(lng) && lat > 6 && lat < 38 && lng > 68 && lng < 98;
-  const base = { configured: hasKitchenPin(rules), maxKm: rules.maxKm, requirePin: rules.requirePin };
+  const configured = hasKitchenPin(rules);
+  const base = { configured, maxKm: rules.maxKm, requirePin: rules.requirePin && rules.limitRange, limitRange: rules.limitRange };
   if (!hasPin) return Response.json({ ...base }, { headers: { 'Cache-Control': 'no-store' } });
   const d = checkDelivery(rules, { lat, lng });
   return Response.json({ ...base, ok: d.ok, outside: Boolean(d.outside), km: d.km, fee: d.fee, reason: d.reason, message: d.message }, { headers: { 'Cache-Control': 'no-store' } });

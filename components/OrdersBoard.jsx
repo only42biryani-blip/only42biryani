@@ -272,6 +272,7 @@ export default function OrdersBoard({ addToast }) {
               </div>
               <div className="flex flex-col items-end gap-1">
                 {['new', 'paid'].includes(o.status) && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-accent text-black">NEW</span>}
+                {o.source === 'test' && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-amber-400 text-black">TEST ORDER</span>}
                 {maxKm !== null && Number(o.distance_km) > maxKm && <span className="text-[10px] font-bold px-2 py-1 rounded-full bg-red-600 text-white">TOO FAR · {Number(o.distance_km)} km</span>}
               </div>
             </div>

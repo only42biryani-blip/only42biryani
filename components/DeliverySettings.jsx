@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { feeFor, rulesFromRow, hasKitchenPin } from '@/lib/delivery';
 import { mapsLink } from '@/lib/maps';
 
-const COLS = 'kitchen_lat, kitchen_lng, max_km, free_km, base_fee, per_km_fee, require_pin';
+const COLS = '*';
 const field = 'w-28 bg-black border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-accent';
 const btn = 'px-4 py-2.5 text-xs font-bold rounded-lg border border-white/10 bg-white/[0.03] text-white hover:bg-white/[0.12] disabled:opacity-50 transition-all';
 
@@ -25,7 +25,7 @@ export default function DeliverySettings({ addToast }) {
     setMissing(false);
     setSaved(r);
     setKitchen({ lat: r.kitchenLat, lng: r.kitchenLng });
-    setForm({ maxKm: String(r.maxKm), freeKm: String(r.freeKm), baseFee: String(r.baseFee), perKmFee: String(r.perKmFee), requirePin: r.requirePin });
+    setForm({ maxKm: String(r.maxKm), freeKm: String(r.freeKm), baseFee: String(r.baseFee), perKmFee: String(r.perKmFee), requirePin: r.requirePin, maxFee: r.maxFee === null ? '' : String(r.maxFee), limitRange: r.limitRange });
   }, []);
 
   useEffect(() => {
@@ -54,10 +54,12 @@ export default function DeliverySettings({ addToast }) {
   const nums = form && {
     maxKm: Number(form.maxKm), freeKm: Number(form.freeKm), baseFee: Number(form.baseFee), perKmFee: Number(form.perKmFee),
   };
-  const valid = nums && Object.values(nums).every((n) => Number.isFinite(n) && n >= 0) && nums.maxKm >= 0.5 && nums.maxKm <= 100;
+  const maxFeeNum = form && (String(form.maxFee).trim() === '' ? null : Number(form.maxFee)); // blank = no cap
+  const valid = nums && Object.values(nums).every((n) => Number.isFinite(n) && n >= 0) && nums.maxKm >= 0.5 && nums.maxKm <= 100 && (maxFeeNum === null || (Number.isFinite(maxFeeNum) && maxFeeNum >= 0));
   const dirty = form && saved && (
     nums.maxKm !== saved.maxKm || nums.freeKm !== saved.freeKm || nums.baseFee !== saved.baseFee || nums.perKmFee !== saved.perKmFee ||
-    form.requirePin !== saved.requirePin || kitchen.lat !== saved.kitchenLat || kitchen.lng !== saved.kitchenLng
+    form.requirePin !== saved.requirePin || kitchen.lat !== saved.kitchenLat || kitchen.lng !== saved.kitchenLng ||
+    maxFeeNum !== saved.maxFee || form.limitRange !== saved.limitRange
   );
 
   async function save() {
@@ -65,7 +67,7 @@ export default function DeliverySettings({ addToast }) {
     setBusy(true);
     const { data, error } = await supabase.from('settings').update({
       kitchen_lat: kitchen.lat, kitchen_lng: kitchen.lng, max_km: nums.maxKm, free_km: nums.freeKm,
-      base_fee: nums.baseFee, per_km_fee: nums.perKmFee, require_pin: form.requirePin,
+      base_fee: nums.baseFee, per_km_fee: nums.perKmFee, require_pin: form.requirePin, max_fee: maxFeeNum, range_limit: form.limitRange,
     }).eq('id', 1).select(COLS);
     setBusy(false);
     if (error || !data || data.length === 0) return addToast?.('Could not save. Run supabase-delivery-setup.sql in Supabase first.', 'error');
@@ -84,10 +86,10 @@ export default function DeliverySettings({ addToast }) {
   }
   if (!form) return <p className="text-xs text-neutral-500">Loading...</p>;
 
-  const rules = { kitchenLat: kitchen.lat, kitchenLng: kitchen.lng, maxKm: nums.maxKm, freeKm: nums.freeKm, baseFee: nums.baseFee, perKmFee: nums.perKmFee, requirePin: form.requirePin };
+  const rules = { kitchenLat: kitchen.lat, kitchenLng: kitchen.lng, maxKm: nums.maxKm, freeKm: nums.freeKm, baseFee: nums.baseFee, perKmFee: nums.perKmFee, requirePin: form.requirePin, maxFee: maxFeeNum, limitRange: form.limitRange };
   const steps = [];
   if (valid) {
-    const max = Math.min(Math.ceil(nums.maxKm), 30);
+    const max = Math.min(Math.max(Math.ceil(nums.maxKm), 10), 30);
     for (let km = 1; km <= max; km++) steps.push([km, feeFor(km, rules)]);
   }
 
@@ -109,14 +111,21 @@ export default function DeliverySettings({ addToast }) {
       </div>
 
       <div className="border border-white/10 rounded-2xl p-5">
-        <h3 className="font-grotesk text-lg font-bold mb-1">2. Your usual delivery range</h3>
-        <p className="text-xs text-neutral-400 leading-relaxed mb-3">
-          This is <b>not a hard limit</b>: customers farther away can still order. They are told they are outside the usual range, and the order shows a red <b>TOO FAR</b> badge so you can decide: deliver anyway, or cancel it (online payments are refunded in full from the Orders tab). Change it any time.
-        </p>
-        <label className="grid gap-1 text-xs text-neutral-400 w-fit">Usual range (km)
-          <input className={field} inputMode="decimal" value={form.maxKm} onChange={edit('maxKm')} />
+        <h3 className="font-grotesk text-lg font-bold mb-1">2. Delivery distance</h3>
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" checked={form.limitRange} onChange={(e) => setForm((f) => ({ ...f, limitRange: e.target.checked }))} className="mt-1 h-5 w-5 accent-[#D4FF3F]" />
+          <span className="text-sm">
+            <b>Flag orders beyond a usual range</b>
+            <span className="block text-xs text-neutral-400 leading-relaxed">
+              Off (recommended for now) = <b>no distance limit</b>: you deliver anywhere in Hyderabad and nothing is flagged. On = customers farther than the range below are told they are outside the usual range, and the order shows a red TOO FAR badge so you can decide to deliver or cancel (online payments are refunded from the Orders tab).
+            </span>
+          </span>
         </label>
-        <p className="text-[11px] text-neutral-500 mt-2">Distance is the approximate road distance (straight line × 1.3), measured from the customer&apos;s shared live location.</p>
+        {form.limitRange && (
+          <label className="grid gap-1 text-xs text-neutral-400 w-fit mt-3">Usual range (km)
+            <input className={field} inputMode="decimal" value={form.maxKm} onChange={edit('maxKm')} />
+          </label>
+        )}
       </div>
 
       <div className="border border-white/10 rounded-2xl p-5">
@@ -132,7 +141,10 @@ export default function DeliverySettings({ addToast }) {
             <input className={field} inputMode="decimal" value={form.perKmFee} onChange={edit('perKmFee')} />
           </label>
         </div>
-        <p className="text-xs text-neutral-400 mb-2">Base charge 0 means delivery is free for the first {nums.freeKm || 0} km.</p>
+        <label className="grid gap-1 text-xs text-neutral-400 w-fit mb-3">Never charge more than ₹ (leave empty for no cap)
+          <input className={field} inputMode="decimal" value={form.maxFee} onChange={edit('maxFee')} placeholder="40" />
+        </label>
+        <p className="text-xs text-neutral-400 mb-2">Whatever the distance, a customer never pays more than this for delivery. For a flat charge for everyone, set the base charge to the same number (for example both 40).</p>
         {steps.length > 0 && (
           <div className="flex flex-wrap gap-2 text-[11px]">
             {steps.map(([km, fee]) => (
@@ -147,7 +159,7 @@ export default function DeliverySettings({ addToast }) {
         <label className="flex items-start gap-3 cursor-pointer">
           <input type="checkbox" checked={form.requirePin} onChange={(e) => setForm((f) => ({ ...f, requirePin: e.target.checked }))} className="mt-1 h-5 w-5 accent-[#D4FF3F]" />
           <span className="text-sm">
-            <b>Customers must share their live location</b>
+            <b>Customers must share their live location (only when the range limit above is on)</b>
             <span className="block text-xs text-neutral-400 leading-relaxed">
               Recommended. It is the only way to measure the distance for sure. If you switch it off, customers can order without it and you must check each address yourself (the order shows &quot;distance not checked&quot;).
             </span>

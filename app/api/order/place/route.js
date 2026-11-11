@@ -1,9 +1,10 @@
 import { orderDb } from '@/lib/supabase-admin';
-import { plateConfig, orderingBlocker, orderMode, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
+import { plateConfig, orderingBlocker, isOpenNow, newCode, validateOrder, priceOrder } from '@/lib/orders';
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 import { deliveryRules } from '@/lib/deliveryRules';
-import { checkDelivery } from '@/lib/delivery';
+import { paymentOptions } from '@/lib/payment';
+import { checkDelivery, capFee } from '@/lib/delivery';
 
 // Self-delivery orders: you deliver, the customer pays cash or UPI on delivery. The server works out every
 // amount (including the offer); nothing the browser sends about prices is trusted.
@@ -12,7 +13,8 @@ export async function POST(request) {
   if (rateLimited('order-place', clientIp(request), 6, 10 * 60 * 1000)) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
-  if (orderingBlocker() || orderMode() !== 'self') return bad('Online ordering is not open yet.', 503);
+  if (orderingBlocker()) return bad('Online ordering is not open yet.', 503);
+  if (!(await paymentOptions()).cod) return bad('Cash on delivery is not available right now.', 409);
   if (!(await kitchenOnline())) return bad(OFFLINE_MESSAGE, 409);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
 
@@ -29,9 +31,10 @@ export async function POST(request) {
   if (!v.ok) return bad(v.error);
   const o = v.value;
   // Delivery range and charge come from your Delivery settings in /admin, worked out here from the shared location.
-  const d = checkDelivery(await deliveryRules(), o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
+  const rules = await deliveryRules();
+  const d = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
   if (!d.ok) return bad(d.message, 422);
-  const p = priceOrder(o.qty, cfg, d.fee === null ? cfg.selfFee : d.fee);
+  const p = priceOrder(o.qty, cfg, d.fee === null ? capFee(cfg.selfFee, rules) : d.fee);
   const code = newCode();
 
   const { error } = await orderDb().rpc('place_self_order', {

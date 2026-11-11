@@ -42,13 +42,13 @@ function loadRazorpay() {
 const rupees = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
 
 // Order form: details -> delivery price -> pay. All prices are re-checked by the server before payment.
-export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 'online', offerPercent = 0, selfFee = 0 }) {
+export default function OrderForm({ price, maxQty, remaining, hoursText, cod = true, online = false, testToken = '', offerPercent = 0, selfFee = 0 }) {
   const [v, setV] = useState({ name: '', phone: '', email: '', address: '', note: '', qty: 1 });
-  const self = mode === 'self';
-  const [fee, setFee] = useState(self ? selfFee : null);
+  const [method, setMethod] = useState(cod ? 'cod' : 'online'); // how the customer pays
+  const self = method === 'cod'; // cash / UPI on delivery
+  const [fee, setFee] = useState(selfFee);
   const [pin, setPin] = useState(null); // { lat, lng } from the phone's location
   const [locating, setLocating] = useState(false);
-  const [quoting, setQuoting] = useState(false);
   const [paying, setPaying] = useState(false);
   const [error, setError] = useState('');
   const [trap, setTrap] = useState('');
@@ -70,13 +70,13 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
         });
         const d = await res.json().catch(() => null);
         if (cancelled || !res.ok || !d) return;
-        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin });
+        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin, limitRange: d.limitRange });
         if (pin) {
           setRange(d);
-          if (self && d.ok && d.fee !== null && d.fee !== undefined) setFee(d.fee);
+          if (d.ok && d.fee !== null && d.fee !== undefined) setFee(d.fee);
         } else {
           setRange(null);
-          if (self) setFee(selfFee);
+          setFee(selfFee);
         }
       } catch {
         // The server checks again when the order is placed.
@@ -86,7 +86,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
       cancelled = true;
       clearTimeout(t);
     };
-  }, [pin, self, selfFee]);
+  }, [pin, selfFee]);
 
   useEffect(() => {
     const t = setTimeout(() => setSavedAddr(readSaved()), 0);
@@ -114,33 +114,13 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
 
   const set = (k) => (e) => {
     setV((x) => ({ ...x, [k]: e.target.value }));
-    if (k === 'address' && !self) setFee(null);
   };
   const qty = Math.min(Number(v.qty) || 1, maxQty);
   const net = Math.round(price * (1 - offerPercent / 100)); // price after the offer, as the server will charge it
-  const total = fee === null ? null : qty * net + fee;
+  const total = qty * net + fee;
   const saved = qty * (price - net);
   const soldOut = remaining !== null && remaining <= 0;
   const needLocation = Boolean(rules?.configured && rules.requirePin && !pin);
-
-  async function getQuote() {
-    setError('');
-    setQuoting(true);
-    try {
-      const res = await fetch('/api/delivery/quote', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ address: v.address }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return setError(data.error || 'Could not get the delivery price.');
-      setFee(data.fee);
-    } catch {
-      setError('Could not reach the server. Check your connection.');
-    } finally {
-      setQuoting(false);
-    }
-  }
 
   function shareLocation() {
     setError('');
@@ -175,14 +155,13 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
   async function pay(e) {
     e.preventDefault();
     if (self) return placeSelfOrder();
-    if (fee === null) return getQuote();
     setError('');
     setPaying(true);
     try {
       const res = await fetch('/api/order/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...v, qty, lat: pin?.lat, lng: pin?.lng, website: trap }),
+        body: JSON.stringify({ ...v, qty, lat: pin?.lat, lng: pin?.lng, website: trap, t: testToken }),
       });
       const o = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(o.error || 'Could not start your order.');
@@ -285,7 +264,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
         className="rounded-xl border border-saffron/50 bg-saffron/10 text-saffron text-sm font-bold px-4 py-3.5 hover:bg-saffron/20 transition-all disabled:opacity-50">
         {locating ? 'Getting your location...' : pin ? '📍 Update my live location' : '📍 Use my live location (easiest)'}
       </button>
-      {rules?.configured && (
+      {rules?.configured && rules.limitRange && (
         <p className="text-[11px] text-white/50 -mt-2">
           Our usual delivery range is {rules.maxKm} km{rules.requirePin ? '. Please share your live location (at the delivery place) so we can check the distance and delivery charge.' : '.'}
         </p>
@@ -312,6 +291,23 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
         Remember my details on this phone for next time
       </label>
 
+      {cod && online && (
+        <fieldset className="grid gap-2">
+          <legend className="text-xs text-white/60 mb-1">How do you want to pay?</legend>
+          <label className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer ${method === 'cod' ? 'border-saffron bg-saffron/10' : 'border-white/15'}`}>
+            <input type="radio" name="method" checked={method === 'cod'} onChange={() => setMethod('cod')} className="mt-1 accent-[#D4FF3F]" />
+            <span className="text-sm text-[#F5F1E8]">Cash or UPI on delivery<span className="block text-[11px] text-white/50">Pay when your order arrives. No advance payment.</span></span>
+          </label>
+          <label className={`flex items-start gap-3 rounded-xl border p-3 cursor-pointer ${method === 'online' ? 'border-saffron bg-saffron/10' : 'border-white/15'}`}>
+            <input type="radio" name="method" checked={method === 'online'} onChange={() => setMethod('online')} className="mt-1 accent-[#D4FF3F]" />
+            <span className="text-sm text-[#F5F1E8]">Pay online now<span className="block text-[11px] text-white/50">UPI, card or netbanking. Your plates are held for 10 minutes while you pay.</span></span>
+          </label>
+        </fieldset>
+      )}
+      {testToken && method === 'online' && (
+        <p className="text-xs rounded-lg border border-amber-400/40 bg-amber-400/10 text-amber-200 p-3">TEST MODE: only you see this. Use Razorpay test details (card 4111 1111 1111 1111, UPI success@razorpay). No real money moves.</p>
+      )}
+
       {fee !== null ? (
         <div className="rounded-xl border border-white/10 bg-black/30 p-4 text-sm grid gap-1.5">
           <div className="flex justify-between text-white/70"><span>{qty} × biryani</span><span>{rupees(qty * price)}</span></div>
@@ -325,9 +321,9 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, mode = 
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
-      <button type="submit" disabled={paying || quoting || v.address.trim().length < 10 || needLocation}
+      <button type="submit" disabled={paying || v.address.trim().length < 10 || needLocation}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-        {quoting ? 'Checking delivery...' : paying ? (self ? 'Placing order...' : 'Opening payment...') : fee === null ? 'Check delivery price' : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
+        {paying ? (self ? 'Placing order...' : 'Opening payment...') : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>
 
       <p className="text-[11px] text-white/45 leading-relaxed">
