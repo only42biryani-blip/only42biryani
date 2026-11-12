@@ -293,7 +293,7 @@ export default function OrdersBoard({ addToast }) {
               <dt className="text-neutral-500">Address</dt><dd className="break-words whitespace-pre-wrap">{o.address}</dd>
               {o.note && (<><dt className="text-neutral-500">Note</dt><dd className="break-words">{o.note}</dd></>)}
               {o.distance_km !== null && o.distance_km !== undefined
-                ? (<><dt className="text-neutral-500">Distance</dt><dd>~{Number(o.distance_km)} km from the kitchen</dd></>)
+                ? (<><dt className="text-neutral-500">Distance</dt><dd>~{Number(o.distance_km)} km from the kitchen <span className="block text-[10px] text-amber-300">from the customer&apos;s live location – check the address matches the map; change the delivery fee in Bill if not</span></dd></>)
                 : (<><dt className="text-neutral-500">Distance</dt><dd className="text-amber-300">not checked{o.lat ? '' : ' (no location shared)'}: look at the map</dd></>)}
               {o.delivered_by && (<><dt className="text-neutral-500">Delivery</dt><dd>{o.delivered_by}</dd></>)}
               {o.borzo_order_id && (<><dt className="text-neutral-500">Rider</dt><dd>Borzo #{o.borzo_order_id} · {o.borzo_status || 'booked'}{o.courier_name ? ` · ${o.courier_name}` : ''}</dd></>)}

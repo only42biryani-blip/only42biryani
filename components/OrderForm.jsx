@@ -142,6 +142,9 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
 
   function shareLocation() {
     setError('');
+    // The live location IS the delivery place (distance and charge come from it), so make sure the
+    // customer is really there: ordering for another address must be typed instead.
+    if (!pin && !window.confirm('Are you at the delivery address right now?\n\nOK = yes, deliver to where I am now.\nCancel = no, I will type the delivery address.')) return;
     if (!navigator.geolocation) return setError('Your browser cannot share location. Please type the address.');
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
@@ -305,7 +308,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
 
       <button type="button" onClick={shareLocation} disabled={locating}
         className="rounded-xl border border-saffron/50 bg-saffron/10 text-saffron text-sm font-bold px-4 py-3.5 hover:bg-saffron/20 transition-all disabled:opacity-50">
-        {locating ? 'Getting your location...' : pin ? '📍 Update my live location' : '📍 Use my live location (easiest)'}
+        {locating ? 'Getting your location...' : pin ? '📍 Update my live location' : "📍 I'm at the delivery place – use my location"}
       </button>
       {rules?.configured && rules.limitRange && (
         <p className="text-[11px] text-white/50 -mt-2">
@@ -318,10 +321,10 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
       )}
       {pin && (
         <p className="text-xs text-saffron -mt-2">
-          Live location saved ✓{' '}
+          Delivering to where you are now ✓{' '}
           <a href={mapsLink(pin)} target="_blank" rel="noopener noreferrer" className="underline">check on map</a>
           <button type="button" onClick={() => setPin(null)} className="underline text-white/50 ml-2">remove</button>
-          <span className="block text-white/50 mt-1">Now just type your flat or house number and street below.</span>
+          <span className="block text-white/50 mt-1">Now just type your flat or house number and street below. Ordering for a different address? Tap remove and type that address.</span>
         </p>
       )}
 
