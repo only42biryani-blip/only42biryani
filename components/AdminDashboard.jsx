@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
-import { ADMIN_EMAIL, ZOMATO_URL } from '@/lib/config';
+import { ADMIN_EMAIL, ZOMATO_URL, TOTAL_PLATES as TOTAL } from '@/lib/config';
+import { istNow, kitchenOpenNow } from '@/lib/kitchenTime';
 import OrdersBoard from './OrdersBoard';
 import WaitlistAddress from './WaitlistAddress';
 import ReviewsAdmin from './ReviewsAdmin';
@@ -13,7 +14,6 @@ import PaymentSettings from './PaymentSettings';
 
 const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['delivery', 'Delivery & pay'], ['launch', 'Launch']];
 
-const TOTAL = 42;
 const SENT_KEY = 'only42-messaged';
 
 function Toast({ message, type, onDone }) {
@@ -222,7 +222,21 @@ export default function AdminDashboard() {
     };
   }, [isAdmin]);
 
-  async function saveInventory(newVal, { confirmText } = {}) {
+  // Your own plate count counts as today's drop, so the automatic daily reset never overwrites it: always when you
+  // press "Start today's drop", and for any other change made while the kitchen is open.
+  async function markDropToday(force) {
+    try {
+      const { data } = await supabase.from('settings').select('*').eq('id', 1).maybeSingle();
+      if (!data || data.drop_date === undefined) return; // automatic-opening SQL not run: nothing to mark
+      if (!force && !kitchenOpenNow(data)) return;
+      const { error } = await supabase.from('settings').update({ drop_date: istNow().date }).eq('id', 1);
+      if (error) throw error;
+    } catch {
+      addToast('Plates saved, but today could not be marked as started. The automatic reset may run again and change the count.', 'error');
+    }
+  }
+
+  async function saveInventory(newVal, { confirmText, startDrop } = {}) {
     if (confirmText && !window.confirm(confirmText)) return;
     const oldVal = inventory;
     savingRef.current = true;
@@ -238,6 +252,7 @@ export default function AdminDashboard() {
       setSyncText('Connected & Active');
       // Best-effort audit trail; ignored if the log table doesn't exist yet.
       supabase.from('inventory_log').insert([{ old_value: oldVal, new_value: newVal, actor: email }]).then(() => {});
+      await markDropToday(!!startDrop);
     } catch {
       addToast('Failed to save changes', 'error');
       setSyncText('Failed to sync');
@@ -491,7 +506,7 @@ export default function AdminDashboard() {
             Subtract 1
           </button>
           <button
-            onClick={() => saveInventory(Math.max(0, TOTAL - prebookToday), { confirmText: prebookToday > 0 ? `Start today's drop? ${prebookToday} plate${prebookToday > 1 ? 's are' : ' is'} already pre-booked for today, so the count is set to ${Math.max(0, TOTAL - prebookToday)} of ${TOTAL}.` : `Start today's drop? This sets the count to ${TOTAL}.` })}
+            onClick={() => saveInventory(Math.max(0, TOTAL - prebookToday), { startDrop: true, confirmText: prebookToday > 0 ? `Start today's drop? ${prebookToday} plate${prebookToday > 1 ? 's are' : ' is'} already pre-booked for today, so the count is set to ${Math.max(0, TOTAL - prebookToday)} of ${TOTAL}.` : `Start today's drop? This sets the count to ${TOTAL}.` })}
             disabled={saving}
             className={`col-span-2 py-4 rounded-2xl text-sm ${ghostBtn}`}>
             Start today&apos;s drop (reset to {Math.max(0, TOTAL - prebookToday)}{prebookToday > 0 ? `: ${prebookToday} pre-booked` : ''})

@@ -5,6 +5,7 @@ import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 import { deliveryRules } from '@/lib/deliveryRules';
 import { loadSettings } from '@/lib/settingsRow';
+import { ensureDailyDrop } from '@/lib/dailyDrop';
 import { paymentOptions, onlineAllowed } from '@/lib/payment';
 import { checkDelivery, capFee } from '@/lib/delivery';
 
@@ -20,6 +21,7 @@ export async function POST(request) {
   const row = await loadSettings(); // one database read for every setting this order needs
   if (!(await kitchenOnline(row))) return bad(OFFLINE_MESSAGE, 409);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
+  await ensureDailyDrop(row); // automatic opening: make sure today's plates have started
 
   let body;
   try {

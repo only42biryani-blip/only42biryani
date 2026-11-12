@@ -3,9 +3,8 @@
 import Link from 'next/link';
 import { useStatus } from './StatusProvider';
 import LaunchCountdown from './LaunchCountdown';
-import { ZOMATO_URL } from '@/lib/config';
+import { ZOMATO_URL, TOTAL_PLATES as TOTAL } from '@/lib/config';
 
-const TOTAL = 42;
 
 // Slim bar pinned to the top of every page view. This is the first thing people see.
 export default function LaunchBanner() {

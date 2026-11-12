@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { orderingBlocker, plateConfig, isOpenNow } from '@/lib/orders';
 import { loadSettings } from '@/lib/settingsRow';
+import { ensureDailyDrop } from '@/lib/dailyDrop';
 import { kitchenOnlineFromRow } from '@/lib/kitchen';
 import { paymentFromRow, onlineAllowed } from '@/lib/payment';
 import { prebookFromRow, prebookDates, prebookDatesWithLeft, bookedPlates } from '@/lib/prebook';
@@ -25,7 +26,8 @@ export async function GET(request) {
   const online = kitchenOnlineFromRow(row);
   const pay = paymentFromRow(row);
   const pb = prebookFromRow(row);
-  const remaining = inv?.data ? inv.data.remaining : null;
+  const dropped = await ensureDailyDrop(row); // automatic opening: the day's plates start by themselves
+  const remaining = dropped !== null ? dropped : inv?.data ? inv.data.remaining : null;
   const open = isOpenNow();
   const soldOutToday = remaining !== null && remaining <= 0;
   const canPayOnline = onlineAllowed(pay, token);

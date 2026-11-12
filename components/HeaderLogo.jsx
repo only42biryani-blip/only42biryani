@@ -3,8 +3,8 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { useStatus } from './StatusProvider';
+import { TOTAL_PLATES as TOTAL } from '@/lib/config';
 
-const TOTAL = 42;
 const LOW = 8;
 
 // Header logo with two small touches:

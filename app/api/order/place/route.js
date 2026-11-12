@@ -6,6 +6,7 @@ import { deliveryRules } from '@/lib/deliveryRules';
 import { paymentOptions } from '@/lib/payment';
 import { prebookFromRow, validPrebookDate, prettyDate } from '@/lib/prebook';
 import { loadSettings } from '@/lib/settingsRow';
+import { ensureDailyDrop } from '@/lib/dailyDrop';
 import { checkDelivery, capFee } from '@/lib/delivery';
 
 // Self-delivery orders: you deliver, the customer pays cash or UPI on delivery. The server works out every
@@ -36,6 +37,7 @@ export async function POST(request) {
   } else {
     if (!(await kitchenOnline(row))) return bad(OFFLINE_MESSAGE, 409);
     if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
+    await ensureDailyDrop(row); // automatic opening: make sure today's plates have started
   }
 
   const cfg = plateConfig();

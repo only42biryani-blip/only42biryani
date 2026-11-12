@@ -4,8 +4,8 @@ import { useRef } from 'react';
 import CountdownTimer from './CountdownTimer';
 import BorderBeam from './BorderBeam';
 import { useStatus } from './StatusProvider';
+import { TOTAL_PLATES as TOTAL } from '@/lib/config';
 
-const TOTAL = 42;
 
 export default function InventoryBox() {
   const { launched, remaining, kitchenOnline, nextBooking } = useStatus();

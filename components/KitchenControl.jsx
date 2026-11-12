@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { bellDue, closingInstant, isOnline, istNow, prettyTime, validTime, RING_WINDOW_MIN } from '@/lib/kitchenTime';
+import { autoEnabled, autoOnlineNow, bellDue, closingInstant, isOnline, istNow, kitchenOpenNow, mins, prettyClock as clock, prettyTime, validTime, RING_WINDOW_MIN } from '@/lib/kitchenTime';
+
 
 const SNOOZE_MIN = 10;
 const QUIET_KEY = 'only42-bell-quiet-day';
@@ -56,7 +57,7 @@ export default function KitchenControl({ addToast }) {
   const [now, setNow] = useState(() => new Date());
   const [snoozedUntil, setSnoozedUntil] = useState(0);
   const [quietDay, setQuietDay] = useState('');
-  const [times, setTimes] = useState({ close: '22:00', reminder: '10:30' });
+  const [times, setTimes] = useState({ close: '22:00', reminder: '10:30', auto: '11:00', autoOn: true });
   const [timesDirty, setTimesDirty] = useState(false);
   const [notif, setNotif] = useState('unsupported');
   const [audioOk, setAudioOk] = useState(false);
@@ -65,14 +66,19 @@ export default function KitchenControl({ addToast }) {
   const dirtyRef = useRef(false);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from('settings').select('online_until, close_time, reminder_time').eq('id', 1).maybeSingle();
-    if (error || !data) {
+    const { data, error } = await supabase.from('settings').select('*').eq('id', 1).maybeSingle();
+    if (error || !data || data.online_until === undefined) {
       setMissing(true);
       return;
     }
     setMissing(false);
     setRow(data);
-    if (!dirtyRef.current) setTimes({ close: data.close_time || '22:00', reminder: data.reminder_time || '10:30' });
+    if (!dirtyRef.current) {
+      setTimes({
+        close: data.close_time || '22:00', reminder: data.reminder_time || '10:30',
+        auto: validTime(data.auto_online_time) ? data.auto_online_time : '11:00', autoOn: autoEnabled(data),
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -102,9 +108,15 @@ export default function KitchenControl({ addToast }) {
     };
   }, [bell]);
 
-  const online = row ? isOnline(row.online_until, now) : false;
-  const due = row ? bellDue({ onlineUntil: row.online_until, reminderTime: row.reminder_time || '10:30', closeTime: row.close_time || '22:00', now }) : false;
-  const quietToday = quietDay === istNow(now).date;
+  const online = row ? kitchenOpenNow(row, now) : false;
+  const today = istNow(now).date;
+  const autoReady = row ? row.auto_online_time !== undefined : false; // the automatic-opening SQL has been run
+  const autoOn = row ? autoEnabled(row) : false;
+  const closedToday = autoOn && row.auto_off_day === today; // you pressed Go offline / Stay closed today
+  const manualOnline = row ? isOnline(row.online_until, now) : false;
+  // With automatic opening on, the kitchen opens by itself, so the morning bell is not needed.
+  const due = row && !autoOn ? bellDue({ onlineUntil: row.online_until, reminderTime: row.reminder_time || '10:30', closeTime: row.close_time || '22:00', now }) : false;
+  const quietToday = quietDay === today;
   const ringing = due && !quietToday && now.getTime() >= snoozedUntil;
 
   function stayOfflineToday() {
@@ -139,7 +151,7 @@ export default function KitchenControl({ addToast }) {
 
   async function save(patch, okMessage) {
     setBusy(true);
-    const { data, error } = await supabase.from('settings').update(patch).eq('id', 1).select('online_until, close_time, reminder_time');
+    const { data, error } = await supabase.from('settings').update(patch).eq('id', 1).select('*');
     setBusy(false);
     if (error || !data || data.length === 0) {
       addToast?.('Could not save. Run supabase-kitchen-setup.sql in Supabase first.', 'error');
@@ -158,20 +170,33 @@ export default function KitchenControl({ addToast }) {
       addToast?.(`Closing time ${closeAt} has already passed today. Set a later closing time below.`, 'error');
       return;
     }
-    await save({ online_until: until.toISOString() }, `You are ONLINE until ${prettyTime(until)}. Customers can order now.`);
+    await save({ online_until: until.toISOString(), ...(autoReady ? { auto_off_day: null } : {}) }, `You are ONLINE until ${prettyTime(until)}. Customers can order now.`);
   }
 
   async function goOffline() {
-    if (!window.confirm('Go offline? Customers will not be able to place new orders until you go online again.')) return;
-    await save({ online_until: null }, 'You are OFFLINE. Customers cannot order.');
+    const tomorrow = autoOn ? ' Automatic opening starts again tomorrow.' : '';
+    if (!window.confirm(`Go offline? Customers will not be able to place new orders for the rest of today.${tomorrow}`)) return;
+    await save({ online_until: null, ...(autoReady ? { auto_off_day: today } : {}) }, `You are OFFLINE for today.${tomorrow}`);
+  }
+
+  // Before the automatic opening time: keep the kitchen closed for the whole day (a holiday).
+  async function closeToday() {
+    if (!window.confirm('Keep the kitchen closed for the rest of today? It will open by itself again tomorrow.')) return;
+    await save({ online_until: null, auto_off_day: today }, 'Closed for today. It opens by itself again tomorrow.');
   }
 
   async function saveTimes() {
-    if (!validTime(times.close) || !validTime(times.reminder)) {
+    if (!validTime(times.close) || !validTime(times.reminder) || (autoReady && times.autoOn && !validTime(times.auto))) {
       addToast?.('Enter times like 22:00 (24-hour).', 'error');
       return;
     }
-    if (await save({ close_time: times.close.trim(), reminder_time: times.reminder.trim() }, 'Times saved.')) {
+    if (autoReady && times.autoOn && mins(times.auto) >= mins(times.close)) {
+      addToast?.('The automatic opening time must be earlier than the closing time.', 'error');
+      return;
+    }
+    const patch = { close_time: times.close.trim(), reminder_time: times.reminder.trim() };
+    if (autoReady) patch.auto_online_time = times.autoOn ? times.auto.trim() : null;
+    if (await save(patch, 'Times saved.')) {
       dirtyRef.current = false;
       setTimesDirty(false);
     }
@@ -237,8 +262,14 @@ export default function KitchenControl({ addToast }) {
           </div>
           <p className="text-xs text-neutral-400 mt-1 leading-relaxed">
             {row === null ? '' : online
-              ? `Customers can order until ${prettyTime(row.online_until)}, then it switches off by itself.`
-              : 'Customers see "kitchen offline" and cannot place orders. Your own manual orders still work.'}
+              ? (manualOnline && !autoOnlineNow(row, now)
+                ? `Customers can order until ${prettyTime(row.online_until)}, then it switches off by itself.`
+                : `Opened automatically at ${clock(row.auto_online_time)}. Customers can order until ${clock(row.close_time || '22:00')}, then it switches off by itself.`)
+              : closedToday
+                ? 'Closed for today (you pressed Go offline). It opens by itself again tomorrow. Customers can pre-book.'
+                : autoOn && autoReady && istNow(now).minutes < mins(row.auto_online_time)
+                  ? `Opens by itself today at ${clock(row.auto_online_time)}. Customers can pre-book until then.`
+                  : 'Customers see "kitchen offline" and cannot place orders. Your own manual orders still work.'}
           </p>
         </div>
         {row !== null && (online ? (
@@ -246,15 +277,35 @@ export default function KitchenControl({ addToast }) {
             Go offline
           </button>
         ) : (
-          <button onClick={goOnline} disabled={busy} className="px-8 py-4 rounded-2xl bg-green-500 text-black font-extrabold text-base hover:bg-green-400 disabled:opacity-50">
-            {busy ? 'Saving...' : 'GO ONLINE'}
-          </button>
+          <div className="flex flex-wrap gap-3 items-center">
+            {autoOn && !closedToday && istNow(now).minutes < mins(row.auto_online_time) && (
+              <button onClick={closeToday} disabled={busy} className="px-4 py-3 rounded-2xl border border-white/15 text-neutral-300 font-bold text-xs hover:bg-white/10 disabled:opacity-50">
+                Stay closed today
+              </button>
+            )}
+            <button onClick={goOnline} disabled={busy} className="px-8 py-4 rounded-2xl bg-green-500 text-black font-extrabold text-base hover:bg-green-400 disabled:opacity-50">
+              {busy ? 'Saving...' : autoOn ? 'OPEN NOW' : 'GO ONLINE'}
+            </button>
+          </div>
         ))}
       </div>
 
       <details className="mt-4 text-xs text-neutral-400">
         <summary className="cursor-pointer font-bold text-neutral-300">Closing time, daily bell and sound</summary>
         <div className="mt-3 grid gap-3">
+          {autoReady && (
+            <div className="flex flex-wrap items-end gap-4">
+              <label className="flex items-center gap-2 text-neutral-300 font-bold">
+                <input type="checkbox" checked={times.autoOn} onChange={(e) => editTime('autoOn', e.target.checked)} className="w-4 h-4 accent-green-500" />
+                Open by itself every day at
+              </label>
+              <input value={times.auto} onChange={(e) => editTime('auto', e.target.value)} disabled={!times.autoOn} className={`${field} disabled:opacity-40`} placeholder="11:00" />
+              <span className="text-neutral-500">(IST, 24h). The 42 plates also start by themselves.</span>
+            </div>
+          )}
+          {!autoReady && (
+            <p className="text-amber-300/90">Automatic daily opening needs one SQL step: run <code className="text-accent">supabase-autoopen-setup.sql</code> in Supabase, then reload.</p>
+          )}
           <div className="flex flex-wrap gap-4 items-end">
             <label className="grid gap-1">Close at (IST, 24h)
               <input value={times.close} onChange={(e) => editTime('close', e.target.value)} className={field} placeholder="22:00" />

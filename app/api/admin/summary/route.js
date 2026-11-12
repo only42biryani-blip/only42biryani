@@ -7,24 +7,35 @@ import { razorpayConfigured } from '@/lib/razorpay';
 import { summarize, istDayStart } from '@/lib/summary';
 import { deliveryRules } from '@/lib/deliveryRules';
 import { hasKitchenPin } from '@/lib/delivery';
+import { loadSettings } from '@/lib/settingsRow';
+import { ensureDailyDrop, dropDue } from '@/lib/dailyDrop';
+import { autoEnabled, prettyClock } from '@/lib/kitchenTime';
+
 
 // Numbers for the admin "Today" tab plus a setup checklist. Admin Google login only.
 export async function GET(request) {
   const denied = await requireAdmin(request);
   if (denied) return denied;
 
-  const pay = await paymentOptions();
+  const settingsRow = await loadSettings();
+  const dropped = await ensureDailyDrop(settingsRow); // automatic opening: the dashboard also starts the day's plates
+  const dropFailed = dropDue(settingsRow) && dropped === null;
+  const pay = await paymentOptions(settingsRow);
   const cfg = plateConfig();
   const env = (k) => !!process.env[k];
   const checks = [
     { key: 'db', ok: !!orderDb(), label: 'Orders database key', fix: 'Add SUPABASE_SERVICE_ROLE_KEY in Vercel, then redeploy.' },
     { key: 'enabled', ok: process.env.ORDERING_ENABLED === '1', label: 'Ordering switched on', fix: 'Set ORDERING_ENABLED=1 in Vercel (last), then redeploy.' },
     { key: 'price', ok: !!cfg.price, label: `Plate price${cfg.price ? ` (₹${cfg.price})` : ''}`, fix: 'Set PLATE_PRICE in Vercel.' },
+    autoEnabled(settingsRow)
+      ? { key: 'auto', ok: true, label: `Opens by itself every day at ${prettyClock(settingsRow.auto_online_time)} (IST)`, fix: '' }
+      : { key: 'auto', ok: false, optional: true, label: 'Automatic daily opening is off', fix: 'Optional: turn it on in the Go online box (Today tab) so the kitchen opens by itself every day.' },
+    ...(dropFailed ? [{ key: 'drop', ok: false, label: 'The 42 plates could not start by themselves today', fix: 'Run supabase-autoopen-setup.sql in Supabase (SQL Editor), or press "Start today\'s drop" by hand.' }] : []),
     { key: 'cod', ok: pay.cod, optional: !pay.cod, label: pay.cod ? 'Cash / UPI on delivery: ON for customers' : 'Cash / UPI on delivery: OFF', fix: 'Turn it on in Delivery & pay.' },
     { key: 'online', ok: true, label: pay.online === 'on' ? 'Online payment: ON for everyone' : pay.online === 'test' ? 'Online payment: TEST only (your secret test link)' : 'Online payment: OFF for customers', fix: '' },
     { key: 'hours', ok: !!cfg.hours, label: `Ordering hours${cfg.hours ? ` (${cfg.hours} IST)` : ''}`, fix: 'Optional: set ORDER_HOURS like 10:42-22:00. Without it the Go online switch alone decides.', optional: true },
   ];
-  const rules = await deliveryRules();
+  const rules = await deliveryRules(settingsRow);
   checks.push({
     key: 'range', ok: hasKitchenPin(rules),
     label: hasKitchenPin(rules) ? `Delivery: ${rules.maxFee === null ? 'no cap' : `max ₹${rules.maxFee}`}, ${rules.limitRange ? `usual range ${rules.maxKm} km` : 'no distance limit'}` : 'Delivery charge and kitchen location',
