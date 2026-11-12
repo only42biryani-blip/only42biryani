@@ -4,6 +4,7 @@ import { plateConfig, orderingBlocker, isOpenNow, newCode, validateOrder, priceO
 import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 import { deliveryRules } from '@/lib/deliveryRules';
+import { loadSettings } from '@/lib/settingsRow';
 import { paymentOptions, onlineAllowed } from '@/lib/payment';
 import { checkDelivery, capFee } from '@/lib/delivery';
 
@@ -16,7 +17,8 @@ export async function POST(request) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
   if (orderingBlocker()) return bad('Online ordering is not open yet.', 503);
-  if (!(await kitchenOnline())) return bad(OFFLINE_MESSAGE, 409);
+  const row = await loadSettings(); // one database read for every setting this order needs
+  if (!(await kitchenOnline(row))) return bad(OFFLINE_MESSAGE, 409);
   if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
 
   let body;
@@ -26,7 +28,7 @@ export async function POST(request) {
     return bad('Invalid request.');
   }
   if (body.website) return Response.json({ ok: true }); // honeypot
-  const payOpts = await paymentOptions();
+  const payOpts = await paymentOptions(row);
   if (!onlineAllowed(payOpts, body.t)) return bad('Online payment is not available right now. Please choose cash on delivery.', 409);
   const isTest = payOpts.online !== 'on'; // only people with your test link get here when it is "test"
 
@@ -36,7 +38,7 @@ export async function POST(request) {
   const o = v.value;
 
   // Delivery range from your Delivery settings: far-away customers are told BEFORE they pay.
-  const rules = await deliveryRules();
+  const rules = await deliveryRules(row);
   const range = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
   if (!range.ok) return bad(range.message, 422);
 

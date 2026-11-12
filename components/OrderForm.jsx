@@ -52,13 +52,14 @@ function StepHead({ n, title, note }) {
 }
 
 // Order form: details -> delivery price -> pay. All prices are re-checked by the server before payment.
-export default function OrderForm({ price, maxQty, remaining, hoursText, cod = true, online = false, testToken = '', offerPercent = 0, selfFee = 0, prebook = null, reason = '' }) {
+export default function OrderForm({ price, maxQty, remaining, hoursText, cod = true, online = false, testToken = '', offerPercent = 0, selfFee = 0, prebook = null, reason = '', initialRules = null }) {
   const [v, setV] = useState({ name: '', phone: '', email: '', address: '', note: '', qty: 1 });
   const [method, setMethod] = useState(cod ? 'cod' : 'online'); // how the customer pays
   const self = method === 'cod'; // cash / UPI on delivery
-  const [fee, setFee] = useState(null); // delivery charge: worked out by the server (null until it answers)
+  // Delivery charge: worked out by the server. The order page hands us the first answer so the form is ready at once.
+  const [fee, setFee] = useState(initialRules ? initialRules.defaultFee ?? selfFee : null);
   const [date, setDate] = useState(prebook ? prebook[0].value : ''); // pre-booking: tomorrow by default
-  const dateLabel = prebook ? (prebook.find((d) => d.value === date)?.label || '').replace('Tomorrow · ', 'tomorrow, ') : '';
+  const dateLabel = prebook ? (prebook.find((d) => d.value === date)?.label || '').replace('Tomorrow · ', 'tomorrow, ').replace('Today · ', 'today, ') : '';
   const [pin, setPin] = useState(null); // { lat, lng } from the phone's location
   const [locating, setLocating] = useState(false);
   const [paying, setPaying] = useState(false);
@@ -66,7 +67,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
   const [trap, setTrap] = useState('');
   const [savedAddr, setSavedAddr] = useState(null); // address remembered on this phone
   const [remember, setRemember] = useState(true);
-  const [rules, setRules] = useState(null); // { configured, maxKm, requirePin } from your Delivery settings
+  const [rules, setRules] = useState(initialRules); // { configured, maxKm, requirePin } from your Delivery settings
   const [range, setRange] = useState(null); // result of the distance check for the shared location
   const router = useRouter();
 
@@ -75,6 +76,11 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
     let cancelled = false;
     const t = setTimeout(async () => {
       try {
+        if (!pin && initialRules) { // nothing to ask the server yet: use the answer we already have
+          setRange(null);
+          setFee(initialRules.defaultFee ?? selfFee);
+          return;
+        }
         const res = await fetch('/api/delivery/check', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -98,7 +104,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
       cancelled = true;
       clearTimeout(t);
     };
-  }, [pin, selfFee]);
+  }, [pin, selfFee, initialRules]);
 
   useEffect(() => {
     const t = setTimeout(() => setSavedAddr(readSaved()), 0);

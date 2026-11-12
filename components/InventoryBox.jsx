@@ -8,7 +8,9 @@ import { useStatus } from './StatusProvider';
 const TOTAL = 42;
 
 export default function InventoryBox() {
-  const { launched, remaining, kitchenOnline, tomorrowLeft } = useStatus();
+  const { launched, remaining, kitchenOnline, nextBooking } = useStatus();
+  const tomorrowLeft = nextBooking ? nextBooking.left : null;
+  const bookWord = nextBooking?.word === 'today' ? 'today' : 'tomorrow';
   const PRE_LAUNCH_MODE = !launched;
   // Kitchen offline: today's number is not what a customer can order, so show tomorrow's free plates instead.
   const offline = launched && kitchenOnline === false && tomorrowLeft !== null && tomorrowLeft !== undefined;
@@ -51,7 +53,7 @@ export default function InventoryBox() {
         <BorderBeam colorFrom="rgba(212,255,63,0.5)" colorTo="transparent" />
       )}
 
-      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">{offline ? 'Plates for tomorrow' : 'Plates today'}</p>
+      <p className="text-neutral-500 text-xs tracking-[2px] uppercase">{offline ? `Plates for ${bookWord}` : 'Plates today'}</p>
 
       <h2
         className="font-grotesk font-extrabold text-[74px] leading-none tracking-[-2px] my-3 transition-colors"
@@ -98,7 +100,7 @@ export default function InventoryBox() {
         {PRE_LAUNCH_MODE
           ? "We haven't launched yet — the numbers above show how each day's drop will work. Join the waitlist to get notified the moment we go live."
           : offline
-          ? 'The kitchen is offline right now. Pre-book tomorrow\'s biryani and we will deliver it fresh that day.'
+          ? `The kitchen is offline right now. Pre-book ${bookWord === 'today' ? 'today' : 'tomorrow'} and we will deliver your biryani fresh that day.`
           : 'The plate count is updated by hand from what the kitchen has really made and sold.'}
       </p>
     </div>

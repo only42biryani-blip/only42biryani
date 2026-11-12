@@ -9,7 +9,8 @@ const TOTAL = 42;
 
 // Slim bar pinned to the top of every page view. This is the first thing people see.
 export default function LaunchBanner() {
-  const { launched, launchAt, banner, remaining, kitchenOnline, tomorrowLeft } = useStatus();
+  const { launched, launchAt, banner, remaining, kitchenOnline, nextBooking } = useStatus();
+  const tomorrowLeft = nextBooking ? nextBooking.left : null; // plates free on the next pre-booking day
   const offline = launched && kitchenOnline === false;
   const soldOut = launched && remaining !== null && remaining <= 0;
 
@@ -27,7 +28,7 @@ export default function LaunchBanner() {
   } else if (offline) {
     content = (
       <>
-        <span>KITCHEN OFFLINE{tomorrowLeft !== null && tomorrowLeft !== undefined ? ` · PRE-BOOK TOMORROW · ${tomorrowLeft} OF ${TOTAL} LEFT` : ''}</span>
+        <span>KITCHEN OFFLINE{tomorrowLeft !== null && tomorrowLeft !== undefined ? ` · PRE-BOOK ${String(nextBooking.word).toUpperCase()} · ${tomorrowLeft} OF ${TOTAL} LEFT` : ''}</span>
         {tomorrowLeft !== null && tomorrowLeft !== undefined && <Link href="/order" className="underline underline-offset-4 hover:text-white">PRE-BOOK</Link>}
       </>
     );

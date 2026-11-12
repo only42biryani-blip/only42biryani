@@ -4,7 +4,8 @@ import { sameSite, clientIp, rateLimited, bad } from '@/lib/apiGuard';
 import { kitchenOnline, OFFLINE_MESSAGE } from '@/lib/kitchen';
 import { deliveryRules } from '@/lib/deliveryRules';
 import { paymentOptions } from '@/lib/payment';
-import { prebookEnabled, validPrebookDate, prettyDate } from '@/lib/prebook';
+import { prebookFromRow, validPrebookDate, prettyDate } from '@/lib/prebook';
+import { loadSettings } from '@/lib/settingsRow';
 import { checkDelivery, capFee } from '@/lib/delivery';
 
 // Self-delivery orders: you deliver, the customer pays cash or UPI on delivery. The server works out every
@@ -15,7 +16,8 @@ export async function POST(request) {
     return bad('Too many attempts. Please try again in a few minutes.', 429);
   }
   if (orderingBlocker()) return bad('Online ordering is not open yet.', 503);
-  if (!(await paymentOptions()).cod) return bad('Cash on delivery is not available right now.', 409);
+  const row = await loadSettings(); // one database read for every setting this order needs
+  if (!(await paymentOptions(row)).cod) return bad('Cash on delivery is not available right now.', 409);
 
   let body;
   try {
@@ -28,10 +30,11 @@ export async function POST(request) {
   // Pre-booking: a booking for the next day(s). Otherwise the kitchen must be online and open right now.
   const sched = typeof body.scheduledFor === 'string' ? body.scheduledFor : '';
   if (sched) {
-    if (!(await prebookEnabled())) return bad('Pre-booking is not available right now.', 409);
-    if (!validPrebookDate(sched)) return bad('Please choose one of the days shown (tomorrow up to a week ahead).', 422);
+    const pb = prebookFromRow(row);
+    if (!pb.enabled) return bad('Pre-booking is not available right now.', 409);
+    if (!validPrebookDate(sched, new Date(), pb.openTime)) return bad('Please choose one of the days shown (tomorrow up to a week ahead).', 422);
   } else {
-    if (!(await kitchenOnline())) return bad(OFFLINE_MESSAGE, 409);
+    if (!(await kitchenOnline(row))) return bad(OFFLINE_MESSAGE, 409);
     if (!isOpenNow()) return bad(`We are closed right now. Ordering hours (IST): ${plateConfig().hours}.`, 409);
   }
 
@@ -40,7 +43,7 @@ export async function POST(request) {
   if (!v.ok) return bad(v.error);
   const o = v.value;
   // Delivery range and charge come from your Delivery settings in /admin, worked out here from the shared location.
-  const rules = await deliveryRules();
+  const rules = await deliveryRules(row);
   const d = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
   if (!d.ok) return bad(d.message, 422);
   const p = priceOrder(o.qty, cfg, d.fee === null ? capFee(cfg.selfFee, rules) : d.fee);
