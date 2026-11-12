@@ -21,12 +21,12 @@ export async function GET(request) {
   const dropped = await ensureDailyDrop(settingsRow); // automatic opening: the dashboard also starts the day's plates
   const dropFailed = dropDue(settingsRow) && dropped === null;
   const pay = await paymentOptions(settingsRow);
-  const cfg = plateConfig();
+  const cfg = plateConfig(settingsRow);
   const env = (k) => !!process.env[k];
   const checks = [
     { key: 'db', ok: !!orderDb(), label: 'Orders database key', fix: 'Add SUPABASE_SERVICE_ROLE_KEY in Vercel, then redeploy.' },
     { key: 'enabled', ok: process.env.ORDERING_ENABLED === '1', label: 'Ordering switched on', fix: 'Set ORDERING_ENABLED=1 in Vercel (last), then redeploy.' },
-    { key: 'price', ok: !!cfg.price, label: `Plate price${cfg.price ? ` (₹${cfg.price})` : ''}`, fix: 'Set PLATE_PRICE in Vercel.' },
+    { key: 'price', ok: !!cfg.price, label: `Plate price${cfg.price ? ` (₹${cfg.price})` : ''}`, fix: 'Set the price in Delivery & pay -> Price and offer.' },
     autoEnabled(settingsRow)
       ? { key: 'auto', ok: true, label: `Opens by itself every day at ${prettyClock(settingsRow.auto_online_time)} (IST)`, fix: '' }
       : { key: 'auto', ok: false, optional: true, label: 'Automatic daily opening is off', fix: 'Optional: turn it on in the Go online box (Today tab) so the kitchen opens by itself every day.' },

@@ -13,7 +13,6 @@ import { rulesFromRow, checkDelivery, capFee, hasKitchenPin } from '@/lib/delive
 // the edge. (A request with a private test link is never cached.)
 export async function GET(request) {
   const token = new URL(request.url).searchParams.get('t') || '';
-  const cfg = plateConfig();
   const blocker = orderingBlocker();
   const now = new Date();
 
@@ -23,6 +22,7 @@ export async function GET(request) {
     bookedPlates(prebookDates(now, '23:59').map((d) => d.value)),
   ]);
 
+  const cfg = plateConfig(row); // price and offer set in the admin win
   const online = kitchenOnlineFromRow(row);
   const pay = paymentFromRow(row);
   const pb = prebookFromRow(row);

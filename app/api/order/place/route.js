@@ -40,7 +40,7 @@ export async function POST(request) {
     await ensureDailyDrop(row); // automatic opening: make sure today's plates have started
   }
 
-  const cfg = plateConfig();
+  const cfg = plateConfig(row);
   const v = validateOrder(body, cfg.maxQty);
   if (!v.ok) return bad(v.error);
   const o = v.value;

@@ -1,5 +1,6 @@
 import AdVideo from './AdVideo';
 import { PLATE } from '@/lib/config';
+import LivePrice from './LivePrice';
 
 // What goes in the box: facts we always show. Price, portion and spice are added
 // automatically once they are set in lib/config.js.
@@ -8,7 +9,7 @@ const rows = [
   { label: 'Rice', value: 'Medium-grain rice' },
   { label: 'Cooked', value: 'Slow dum in a sealed handi' },
   { label: 'Packed in', value: 'Sugarcane bagasse box' },
-  { label: 'Price', value: PLATE.price },
+  { label: 'Price', value: <LivePrice fallback={PLATE.price} /> },
   { label: 'Portion', value: PLATE.portion },
   { label: 'Spice level', value: PLATE.spice },
 ].filter((r) => r.value);

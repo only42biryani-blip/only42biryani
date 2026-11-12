@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { OrderProvider, DeliveryCard, OrderSection } from '@/components/OrderClient';
+import { OrderProvider, DeliveryCard, OrderSection, ProductPrice } from '@/components/OrderClient';
 import { plateConfig } from '@/lib/orders';
-import { OFFER, PLATE, AREA } from '@/lib/config';
+import { PLATE, AREA } from '@/lib/config';
 
 // Static page: it opens instantly from the edge. The live parts (kitchen online or offline, plates left, payment
 // choices, pre-booking days) load into it from one fast request (see components/OrderClient.jsx).
@@ -13,8 +13,6 @@ export const metadata = {
   description: 'Order Only42Biryani Hyderabadi chicken dum biryani for delivery in Hyderabad. Only 42 plates a day.',
   alternates: { canonical: '/order' },
 };
-
-const rupees = (n) => `₹${Number(n).toLocaleString('en-IN')}`;
 
 const FACTS = [
   ['Chicken', 'Fresh boneless chicken breast (Sneha chicken)'],
@@ -32,7 +30,6 @@ const STEPS = [
 
 export default function OrderPage() {
   const cfg = plateConfig();
-  const net = cfg.price ? Math.round(cfg.price * (1 - cfg.offerPercent / 100)) : null;
 
   return (
     <main className="min-h-screen bg-black text-white px-5 py-12 md:py-16 font-inter">
@@ -55,12 +52,7 @@ export default function OrderPage() {
                 <div className="p-6">
                   <div className="text-saffron text-xs font-semibold tracking-[3px] uppercase">The only item on the menu</div>
                   <h2 className="font-grotesk text-2xl font-extrabold text-[#F5F1E8] mt-1">Hyderabadi chicken dum biryani</h2>
-                  <div className="mt-3 flex flex-wrap items-baseline gap-3">
-                    {cfg.offerPercent > 0 && cfg.price && <span className="text-lg text-white/40 line-through">{rupees(cfg.price)}</span>}
-                    <span className="font-grotesk text-3xl font-extrabold text-[#F5F1E8]">{net ? rupees(net) : PLATE.price}</span>
-                    <span className="text-sm text-white/50">per plate</span>
-                    {cfg.offerPercent > 0 && <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-accent text-black">{OFFER.label}</span>}
-                  </div>
+                  <ProductPrice price={cfg.price} offerPercent={cfg.offerPercent} />
                   <dl className="mt-5 grid grid-cols-[84px_1fr] gap-x-3 gap-y-2 text-sm">
                     {FACTS.map(([k, v]) => (
                       <div key={k} className="contents"><dt className="text-white/45">{k}</dt><dd className="text-white/85">{v}</dd></div>

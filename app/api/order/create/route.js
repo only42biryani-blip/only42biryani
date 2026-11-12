@@ -34,7 +34,7 @@ export async function POST(request) {
   if (!onlineAllowed(payOpts, body.t)) return bad('Online payment is not available right now. Please choose cash on delivery.', 409);
   const isTest = payOpts.online !== 'on'; // only people with your test link get here when it is "test"
 
-  const cfg = plateConfig();
+  const cfg = plateConfig(row);
   const v = validateOrder(body, cfg.maxQty);
   if (!v.ok) return bad(v.error);
   const o = v.value;

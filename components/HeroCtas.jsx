@@ -9,7 +9,8 @@ import { INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL, OFFER } from '@/lib/config';
 // The launch moment, front and centre in the hero: a countdown plus the one thing
 // we want visitors to do (join before launch, order after it).
 export default function HeroCtas() {
-  const { launched, launchAt, directOrdering, prebook, nextBooking } = useStatus();
+  const { launched, launchAt, directOrdering, prebook, nextBooking, offerPercent } = useStatus();
+  const offerPct = offerPercent ?? OFFER?.percent ?? 0; // as set in the admin
 
   return (
     <div className="flex flex-col gap-6">
@@ -19,7 +20,7 @@ export default function HeroCtas() {
         <div className="flex flex-wrap gap-3">
           <Link href="/order"
             className="rounded-full bg-accent text-black font-bold text-sm px-8 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all">
-            Order now{OFFER?.percent ? ` · ${OFFER.percent}% OFF` : ''}
+            Order now{offerPct ? ` · ${offerPct}% OFF` : ''}
           </Link>
         </div>
       )}
@@ -28,7 +29,7 @@ export default function HeroCtas() {
         <div className="flex flex-wrap gap-3">
           <Link href="/order"
             className="rounded-full bg-accent text-black font-bold text-sm px-8 py-4 tracking-wide shadow-[0_8px_30px_rgba(212,255,63,0.25)] hover:bg-white transition-all">
-            Pre-book for {nextBooking?.word === 'today' ? 'today' : 'tomorrow'}{OFFER?.percent ? ` · ${OFFER.percent}% OFF` : ''}
+            Pre-book for {nextBooking?.word === 'today' ? 'today' : 'tomorrow'}{offerPct ? ` · ${offerPct}% OFF` : ''}
           </Link>
         </div>
       )}

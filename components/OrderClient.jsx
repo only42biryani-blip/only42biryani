@@ -45,6 +45,23 @@ function Closed({ children }) {
   );
 }
 
+// The price line on the product card. It starts with the values the page was built with and switches to your
+// live price and offer (set in the admin) as soon as they load.
+export function ProductPrice({ price: builtPrice, offerPercent: builtOffer }) {
+  const { ctx } = useContext(Ctx);
+  const price = ctx ? ctx.price : builtPrice;
+  const pct = ctx ? ctx.offerPercent : builtOffer;
+  const net = price ? Math.round(price * (1 - pct / 100)) : null;
+  return (
+    <div className="mt-3 flex flex-wrap items-baseline gap-3">
+      {pct > 0 && price && <span className="text-lg text-white/40 line-through">{rupees(price)}</span>}
+      <span className="font-grotesk text-3xl font-extrabold text-[#F5F1E8]">{net ? rupees(net) : 'Price soon'}</span>
+      <span className="text-sm text-white/50">per plate</span>
+      {pct > 0 && <span className="text-[11px] font-bold px-2.5 py-1 rounded-full bg-accent text-black">Launch offer: {pct}% OFF</span>}
+    </div>
+  );
+}
+
 // "Delivery and payment" card: the delivery charge text depends on your live settings.
 export function DeliveryCard({ area }) {
   const { ctx } = useContext(Ctx);

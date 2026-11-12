@@ -2,6 +2,7 @@ import { orderDb } from '@/lib/supabase-admin';
 import { requireAdmin } from '@/lib/adminAuth';
 import { borzoConfigured } from '@/lib/borzo';
 import { deliveryRules } from '@/lib/deliveryRules';
+import { loadSettings } from '@/lib/settingsRow';
 import { STATUS_LABEL, plateConfig, newCode, validateOrder, priceOrder } from '@/lib/orders';
 
 async function limitKm() {
@@ -34,7 +35,9 @@ export async function POST(request) {
   if (denied) return denied;
   const db = orderDb();
   if (!db) return Response.json({ error: 'Ordering database is not set up yet.' }, { status: 503 });
-  if (!plateConfig().price) return Response.json({ error: 'Set PLATE_PRICE in Vercel first.' }, { status: 409 });
+  const row = await loadSettings();
+  const cfg = plateConfig(row);
+  if (!cfg.price) return Response.json({ error: 'Set the plate price first (Delivery & pay -> Price and offer).' }, { status: 409 });
 
   let body;
   try {
@@ -46,7 +49,6 @@ export async function POST(request) {
   if (!v.ok) return Response.json({ error: v.error }, { status: 400 });
   const o = v.value;
 
-  const cfg = plateConfig();
   const pct = body.discountPercent === undefined || body.discountPercent === '' ? cfg.offerPercent : Math.min(100, Math.max(0, Number(body.discountPercent) || 0));
   const fee = body.deliveryFee === undefined || body.deliveryFee === '' ? cfg.selfFee : Math.max(0, Number(body.deliveryFee) || 0);
   const p = priceOrder(o.qty, { ...cfg, offerPercent: pct }, fee);
