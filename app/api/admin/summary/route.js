@@ -9,6 +9,7 @@ import { deliveryRules } from '@/lib/deliveryRules';
 import { hasKitchenPin } from '@/lib/delivery';
 import { loadSettings } from '@/lib/settingsRow';
 import { ensureDailyDrop, dropDue } from '@/lib/dailyDrop';
+import { telegramConfigured } from '@/lib/telegram';
 import { autoEnabled, prettyClock } from '@/lib/kitchenTime';
 
 
@@ -30,6 +31,7 @@ export async function GET(request) {
     autoEnabled(settingsRow)
       ? { key: 'auto', ok: true, label: `Opens by itself every day at ${prettyClock(settingsRow.auto_online_time)} (IST)`, fix: '' }
       : { key: 'auto', ok: false, optional: true, label: 'Automatic daily opening is off', fix: 'Optional: turn it on in the Go online box (Today tab) so the kitchen opens by itself every day.' },
+    { key: 'telegram', ok: telegramConfigured(), optional: true, label: telegramConfigured() ? 'Phone alerts (Telegram): ON' : 'Phone alerts (Telegram)', fix: 'Optional: add TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID in Vercel to get a message on your phone for every order and waitlist signup.' },
     ...(dropFailed ? [{ key: 'drop', ok: false, label: 'The 42 plates could not start by themselves today', fix: 'Run supabase-autoopen-setup.sql in Supabase (SQL Editor), or press "Start today\'s drop" by hand.' }] : []),
     { key: 'cod', ok: pay.cod, optional: !pay.cod, label: pay.cod ? 'Cash / UPI on delivery: ON for customers' : 'Cash / UPI on delivery: OFF', fix: 'Turn it on in Delivery & pay.' },
     { key: 'online', ok: true, label: pay.online === 'on' ? 'Online payment: ON for everyone' : pay.online === 'test' ? 'Online payment: TEST only (your secret test link)' : 'Online payment: OFF for customers', fix: '' },

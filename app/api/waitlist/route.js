@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase';
+import { alertOwner } from '@/lib/telegram';
 
 const PHONE_PATTERN = /^(\+91)?[6-9]\d{9}$/;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -71,6 +72,7 @@ export async function POST(request) {
     return bad('We could not save your details right now. Please try again.', 502);
   }
 
+  if (!error) alertOwner(`👋 New waitlist signup\n${name} · ${phone}`); // new people only (not someone already on the list)
   return Response.json({ ok: true });
 }
 

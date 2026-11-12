@@ -12,6 +12,7 @@ import AdminSummary from './AdminSummary';
 import DeliverySettings from './DeliverySettings';
 import PaymentSettings from './PaymentSettings';
 import PriceSettings from './PriceSettings';
+import AlertSettings from './AlertSettings';
 
 const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['delivery', 'Delivery & pay'], ['launch', 'Launch']];
 
@@ -521,7 +522,7 @@ export default function AdminDashboard() {
         </div>
         </div>
 
-        <div className={tab === 'delivery' ? 'mb-6' : 'hidden'}><div className="grid gap-5"><PriceSettings addToast={addToast} /><PaymentSettings addToast={addToast} /><DeliverySettings addToast={addToast} /></div></div>
+        <div className={tab === 'delivery' ? 'mb-6' : 'hidden'}><div className="grid gap-5"><AlertSettings addToast={addToast} /><PriceSettings addToast={addToast} /><PaymentSettings addToast={addToast} /><DeliverySettings addToast={addToast} /></div></div>
 
         {/* Launch controls */}
         <div className={`border border-white/10 rounded-2xl p-5 mb-6 ${tab === 'launch' ? '' : 'hidden'}`}>

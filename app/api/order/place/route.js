@@ -7,6 +7,7 @@ import { paymentOptions } from '@/lib/payment';
 import { prebookFromRow, validPrebookDate, prettyDate } from '@/lib/prebook';
 import { loadSettings } from '@/lib/settingsRow';
 import { ensureDailyDrop } from '@/lib/dailyDrop';
+import { alertOwner, orderAlert } from '@/lib/telegram';
 import { checkDelivery, capFee } from '@/lib/delivery';
 
 // Self-delivery orders: you deliver, the customer pays cash or UPI on delivery. The server works out every
@@ -64,6 +65,7 @@ export async function POST(request) {
     if (/sold_out/i.test(error.message || '')) return bad(sched ? `Sorry, ${prettyDate(sched)} is fully booked. Please choose another day.` : 'Sorry, there are not enough plates left today.', 409);
     return bad('We could not place your order. Please try again.', 502);
   }
+  alertOwner(orderAlert({ code, qty: o.qty, total: p.total, name: o.name, phone: o.phone, address: o.address, lat: o.lat, lng: o.lng, scheduledFor: sched || null, paid: false, test: false, km: d.km, outside: d.outside }));
   if (d.km !== null) await orderDb().from('orders').update({ distance_km: d.km }).eq('code', code); // best effort (needs supabase-delivery-setup.sql)
   return Response.json({ ok: true, code, total: p.total }, { headers: { 'Cache-Control': 'no-store' } });
 }
