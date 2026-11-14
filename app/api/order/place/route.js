@@ -52,6 +52,19 @@ export async function POST(request) {
   const p = priceOrder(o.qty, cfg, d.fee === null ? capFee(cfg.selfFee, rules) : d.fee);
   const code = newCode();
 
+  // A second tap or a page refresh must not create a second order: the same phone, address and plates within
+  // 3 minutes gives back the first order. (If this check itself fails, the order simply goes through.)
+  try {
+    const since = new Date(Date.now() - 3 * 60 * 1000).toISOString();
+    let q = orderDb().from('orders').select('code,total').eq('customer_phone', o.phone).eq('address', o.address).eq('qty', o.qty).eq('source', 'website')
+      .neq('status', 'cancelled').gte('created_at', since);
+    q = sched ? q.eq('scheduled_for', sched) : q.is('scheduled_for', null);
+    const { data: dup } = await q.limit(1);
+    if (dup && dup.length) return Response.json({ ok: true, code: dup[0].code, total: dup[0].total, duplicate: true }, { headers: { 'Cache-Control': 'no-store' } });
+  } catch {
+    // Carry on and place the order.
+  }
+
   const args = {
     p_code: code, p_qty: o.qty, p_mrp: p.mrp, p_discount_percent: p.discountPercent, p_discount_amount: p.discountAmount,
     p_plate_price: p.net, p_delivery_fee: p.deliveryFee, p_total: p.total,

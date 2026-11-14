@@ -8,8 +8,10 @@
 - Packaging: boxes made from sugarcane bagasse (the plant fibre left after sugarcane is pressed for juice).
 - Limit: 42 plates per day, one batch, no second batch, no frozen gravy.
 - City: Hyderabad, Telangana, India.
-- Ordering: through Zomato once launched. Before launch, people join the waitlist and are notified when ordering opens.
+- Ordering: directly on the website (https://only42biryani.com/order) with cash or UPI on delivery, or on Zomato. When the kitchen is offline or sold out for the day, people can pre-book for another day. We deliver only inside Hyderabad.
 
 ## Pages
 - [Home](https://only42biryani.com/): what Only42Biryani is, how it works, FAQ, and the waitlist.
-- [Privacy policy](https://only42biryani.com/privacy): what details the waitlist collects and how they are used.
+- [Order](https://only42biryani.com/order): the product, price, delivery and payment details, and the order form.
+- [Contact](https://only42biryani.com/contact): email, area and a form to request a call back.
+- [Delivery policy](https://only42biryani.com/delivery-policy), [Refund policy](https://only42biryani.com/refund-policy), [Terms](https://only42biryani.com/terms) and [Privacy policy](https://only42biryani.com/privacy).

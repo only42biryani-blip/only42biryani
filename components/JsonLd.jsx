@@ -81,7 +81,8 @@ export default function JsonLd({ launched }) {
       areaServed: { '@type': 'City', name: 'Hyderabad' },
       address: {
         '@type': 'PostalAddress',
-        addressLocality: AREA ? AREA.split(',')[0].trim() : 'Hyderabad', // the area only (no street address)
+        ...(AREA ? { streetAddress: AREA.split(',')[0].trim() } : {}), // the area only (no street address)
+        addressLocality: 'Hyderabad',
         addressRegion: 'Telangana',
         addressCountry: 'IN',
       },
