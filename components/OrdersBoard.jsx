@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { mapsLink } from '@/lib/maps';
+import { MESSAGES, waLink } from '@/lib/whatsappMessages';
 
 const ACTIVE = ['new', 'confirmed', 'paid', 'preparing', 'ready', 'dispatched', 'paid_needs_refund'];
 
@@ -170,7 +171,7 @@ export default function OrdersBoard({ addToast }) {
     const refundText = o.razorpay_payment_id ? ` and refund ${money(o.total)}` : '';
     if (!window.confirm(`Cancel order ${o.code}${refundText}? This cannot be undone.`)) return;
     const restore = window.confirm('Put the plate(s) back in stock?\n\nOK = yes (food was NOT cooked for this order)\nCancel = no');
-    act(o, 'cancel', { restore });
+    act(o, 'cancel', { restore }).then((ok) => { if (ok) addToast?.('Cancelled. Under "Recently closed" you can WhatsApp the customer: "WhatsApp: cancelled".', 'success'); });
   }
 
   const list = (orders || []).filter((o) => ACTIVE.includes(o.status));
@@ -305,15 +306,23 @@ export default function OrdersBoard({ addToast }) {
               <a className={small} href={`/admin/bill?code=${o.code}`} target="_blank" rel="noopener noreferrer">Print bill</a>
               {isCod(o) && <a className={small} href={`/admin/bill?code=${o.code}&edit=1`} target="_blank" rel="noopener noreferrer">Edit bill</a>}
               {maxKm !== null && Number(o.distance_km) > maxKm && !['delivered', 'cancelled', 'refunded'].includes(o.status) && (
-                <a className={`${small} border-red-500/40 text-red-300`} target="_blank" rel="noopener noreferrer"
-                  href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, sorry, your address for Only42Biryani order ${o.code} is about ${Number(o.distance_km)} km away, which is outside our delivery range. ${isCod(o) ? 'We have to cancel this order.' : 'We will cancel it and refund your full payment.'} Sorry for the trouble.`)}`}>
+                <a className={`${small} border-red-500/40 text-red-300`} target="_blank" rel="noopener noreferrer" href={waLink(o.customer_phone, MESSAGES.tooFar(o))}>
                   WhatsApp: too far
                 </a>
               )}
-              {o.status === 'confirmed' && (
-                <a className={small} target="_blank" rel="noopener noreferrer"
-                  href={`https://wa.me/${o.customer_phone}?text=${encodeURIComponent(`Hello ${o.customer_name}, your Only42Biryani order ${o.code} is confirmed${o.scheduled_for ? ` for ${new Date(`${o.scheduled_for}T12:00:00Z`).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })}` : ''}. ${o.qty} plate${o.qty > 1 ? 's' : ''}, total ${money(o.total)}${isCod(o) ? '. Please keep cash or UPI ready.' : '.'} We will deliver soon. Thank you!`)}`}>
+              {['new', 'paid'].includes(o.status) && (
+                <a className={`${small} text-green-400`} target="_blank" rel="noopener noreferrer" href={waLink(o.customer_phone, MESSAGES.received(o))}>
+                  WhatsApp: order received
+                </a>
+              )}
+              {['confirmed', 'preparing', 'ready'].includes(o.status) && (
+                <a className={`${small} text-green-400`} target="_blank" rel="noopener noreferrer" href={waLink(o.customer_phone, MESSAGES.confirmed(o))}>
                   WhatsApp: confirmed
+                </a>
+              )}
+              {o.status === 'dispatched' && (
+                <a className={`${small} text-green-400`} target="_blank" rel="noopener noreferrer" href={waLink(o.customer_phone, MESSAGES.outForDelivery(o))}>
+                  WhatsApp: out for delivery
                 </a>
               )}
             </div>
@@ -365,7 +374,7 @@ export default function OrdersBoard({ addToast }) {
       </div>
 
       {done.length > 0 && (
-        <details className="mt-4 text-xs text-neutral-500">
+        <details className="mt-4 text-xs text-neutral-500" open={done.some((o) => ['cancelled', 'refunded'].includes(o.status))}>
           <summary className="cursor-pointer">Recently closed ({done.length})</summary>
           <ul className="mt-2 grid gap-1">
             {done.map((o) => (
@@ -373,6 +382,12 @@ export default function OrdersBoard({ addToast }) {
                 {o.code} · {o.customer_name} · {money(o.total)} · {o.label}
                 {o.paid_by ? ` (${o.paid_by})` : ''} ·{' '}
                 <a className="underline" href={`/admin/bill?code=${o.code}`} target="_blank" rel="noopener noreferrer">bill</a>
+                {['cancelled', 'refunded'].includes(o.status) && (
+                  <> · <a className="underline text-green-400" href={waLink(o.customer_phone, MESSAGES.cancelled(o))} target="_blank" rel="noopener noreferrer">WhatsApp: cancelled</a></>
+                )}
+                {o.status === 'delivered' && (
+                  <> · <a className="underline text-green-400" href={waLink(o.customer_phone, MESSAGES.delivered(o))} target="_blank" rel="noopener noreferrer">WhatsApp: thank you</a></>
+                )}
               </li>
             ))}
           </ul>
