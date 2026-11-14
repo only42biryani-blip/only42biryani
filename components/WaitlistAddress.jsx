@@ -29,7 +29,7 @@ export default function WaitlistAddress({ entry, onSaved, addToast }) {
     const answer = window.prompt(`How many plates for ${entry.name}?`, '1');
     if (answer === null) return;
     const qty = Number(answer);
-    if (!Number.isInteger(qty) || qty < 1 || qty > 5) return addToast?.('Enter 1 to 5 plates', 'error');
+    if (!Number.isInteger(qty) || qty < 1 || qty > 42) return addToast?.('Enter 1 to 42 plates', 'error');
     const w = window.open('', '_blank'); // opened first so the browser does not block it
     setCreating(true);
     try {

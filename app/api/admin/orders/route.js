@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/adminAuth';
 import { borzoConfigured } from '@/lib/borzo';
 import { deliveryRules } from '@/lib/deliveryRules';
 import { loadSettings } from '@/lib/settingsRow';
-import { STATUS_LABEL, plateConfig, newCode, validateOrder, priceOrder } from '@/lib/orders';
+import { STATUS_LABEL, plateConfig, newCode, validateOrder, priceOrder, hardMaxQty } from '@/lib/orders';
 
 async function limitKm() {
   const r = await deliveryRules();
@@ -45,7 +45,7 @@ export async function POST(request) {
   } catch {
     return Response.json({ error: 'Invalid request.' }, { status: 400 });
   }
-  const v = validateOrder(body, 5); // the orders table allows 1 to 5 plates
+  const v = validateOrder(body, hardMaxQty(row)); // up to a whole day's batch (5 until supabase-qty-setup.sql is run)
   if (!v.ok) return Response.json({ error: v.error }, { status: 400 });
   const o = v.value;
 

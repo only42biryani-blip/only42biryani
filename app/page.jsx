@@ -9,6 +9,8 @@ import PhotoGallery from '@/components/PhotoGallery';
 import StatusProvider from '@/components/StatusProvider';
 import LaunchBanner from '@/components/LaunchBanner';
 import HeroCtas from '@/components/HeroCtas';
+import HeaderCta from '@/components/HeaderCta';
+import PrebookCard from '@/components/PrebookCard';
 import StickyCta from '@/components/StickyCta';
 import FollowSection from '@/components/FollowSection';
 import JsonLd from '@/components/JsonLd';
@@ -67,11 +69,7 @@ export default async function HomePage() {
               <span className="w-1.5 h-1.5 bg-accent rounded-full animate-pulse" />
               Hyderabad · 42 plates a day
             </span>
-            <a href="#terminal"
-              className="rounded-full bg-accent text-black font-bold text-xs px-6 py-3
-                hover:bg-white transition-colors duration-300 tracking-wide">
-              Join the waitlist
-            </a>
+            <HeaderCta />
           </div>
         </div>
       </header>
@@ -97,7 +95,10 @@ export default async function HomePage() {
 
             <p className="text-white/80 text-base sm:text-lg leading-relaxed max-w-[560px] mb-6">
               Only42Biryani is a Hyderabad kitchen serving Hyderabadi chicken dum biryani in one fresh batch of 42 plates a day.
-              When the 42 are gone, the kitchen stops. Join the waitlist to hear the moment the next drop goes live.
+              {' '}
+              {status.launched
+                ? 'Order for delivery in Hyderabad, or pre-book a plate for another day. When the 42 are gone, the kitchen stops.'
+                : 'When the 42 are gone, the kitchen stops. Join the waitlist to hear the moment the next drop goes live.'}
             </p>
             
             <p className="text-saffron font-semibold text-sm tracking-wide leading-relaxed mb-8">
@@ -180,13 +181,43 @@ export default async function HomePage() {
         </section>
 
         <ThePlate />
-        <HowItWorks />
+        <HowItWorks launched={status.launched} />
         <Story />
         <Reviews />
         <Faq launched={status.launched} />
         <FollowSection />
 
-        {/* TERMINAL WAITLIST */}
+        {/* PRE-BOOKING + WAITLIST (the #terminal anchor is where the "Join the waitlist" buttons scroll to) */}
+        {status.launched ? (
+          <section id="terminal" className="pt-12">
+            <div className="grid gap-6 lg:grid-cols-2 max-w-[1100px] mx-auto">
+              <PrebookCard />
+              <div id="waitlist" className="hud-box p-8 sm:p-10 relative overflow-hidden scroll-mt-6">
+                <BorderBeam size={300} duration={15} borderWidth={2} colorFrom="rgba(242,169,59,0.5)" colorTo="rgba(212,255,63,0.3)" />
+                <div className="relative z-10 mb-6">
+                  <div className="inline-block rounded-full bg-saffron/10 text-saffron border border-saffron/30 px-4 py-1.5 text-xs font-semibold mb-4">
+                    Daily drop alerts
+                  </div>
+                  <h2 className="font-grotesk text-3xl md:text-4xl font-extrabold text-[#F5F1E8] tracking-tight mb-3">Join the waitlist</h2>
+                  <p className="text-sm text-white/65 leading-relaxed">
+                    Not ready to order? We will message you when a day&apos;s plates go live. Joining is free. It is <b className="text-white">not an order</b> and it does not reserve a plate.
+                  </p>
+                </div>
+                <div className="relative z-10 rounded-xl border border-white/10 bg-black/30 p-4 mb-6 text-xs text-white/65 leading-relaxed">
+                  <div className="text-[11px] tracking-[2px] uppercase text-saffron font-semibold mb-2">What happens after you join</div>
+                  <ol className="grid gap-1.5 list-decimal pl-4">
+                    <li>You are on the list. No payment, nothing to confirm.</li>
+                    <li>When a day&apos;s plates go live, we message you on WhatsApp (sometimes email), so you can order before the 42 are gone.</li>
+                    <li>Want to be sure of a plate? Pre-book it instead. Pre-booked plates are kept aside for you.</li>
+                  </ol>
+                </div>
+                <div className="relative z-10">
+                  <WaitlistForm />
+                </div>
+              </div>
+            </div>
+          </section>
+        ) : (
         <section id="terminal" className="pt-12">
           <div className="hud-box p-8 sm:p-12 max-w-[800px] mx-auto relative overflow-hidden">
             <BorderBeam size={300} duration={15} borderWidth={2} colorFrom="rgba(242,169,59,0.5)" colorTo="rgba(212,255,63,0.3)" />
@@ -208,6 +239,7 @@ export default async function HomePage() {
             </div>
           </div>
         </section>
+        )}
 
         {/* CLOSING */}
         <section className="py-24 text-center">

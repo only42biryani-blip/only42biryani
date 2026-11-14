@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import ShareFollow from './ShareFollow';
+import { useStatus } from './StatusProvider';
 
 function animateCount(target, setter) {
   const steps = 40;
@@ -25,6 +26,7 @@ const fields = [
 ];
 
 export default function WaitlistForm() {
+  const { launched } = useStatus();
   const [values, setValues] = useState({ name: '', phone: '', email: '' });
   const [trap, setTrap] = useState('');
   const [error, setError] = useState('');
@@ -81,7 +83,7 @@ export default function WaitlistForm() {
       {liveCount >= 10 && (
         <div className="inline-flex items-center gap-2 mb-8 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs tracking-wide text-white/70">
           <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-          <span><strong className="text-saffron">{liveCount}</strong> people on the waitlist</span>
+          <span><strong className="text-saffron">{liveCount}</strong> {launched ? 'people get our drop alerts' : 'people on the waitlist'}</span>
         </div>
       )}
 
@@ -115,7 +117,7 @@ export default function WaitlistForm() {
         />
 
         <p className="text-left text-xs text-white/60 leading-relaxed">
-          By joining, you agree to get launch updates and daily drop alerts from Only42Biryani on WhatsApp, SMS and email.
+          By joining, you agree to get drop alerts and updates from Only42Biryani on WhatsApp, SMS and email.
           Reply STOP any time to opt out.{' '}
           <Link href="/privacy" className="underline hover:text-accent" target="_blank" rel="noopener noreferrer">Privacy policy</Link>
         </p>
@@ -149,9 +151,17 @@ export default function WaitlistForm() {
               ✓
             </div>
             <h3 className="font-grotesk font-extrabold text-3xl tracking-tight mb-3 text-[#F5F1E8]">You&apos;re on the list</h3>
-            <p className="text-white/60 text-sm leading-relaxed mb-6">
-              We&apos;ll message you the moment the day&apos;s 42 plates go live. Know someone who loves real Hyderabadi biryani? Bring them in.
+            <p className="text-white/60 text-sm leading-relaxed mb-4">
+              {launched
+                ? 'We will message you on WhatsApp when a day’s plates go live. This is not an order, so no plate is reserved yet.'
+                : 'We’ll message you the moment the day’s 42 plates go live.'}
             </p>
+            {launched && (
+              <Link href="/order" className="inline-block mb-5 rounded-full bg-accent text-black font-bold text-sm px-6 py-3 hover:bg-white transition-colors">
+                Want a plate for sure? Order or pre-book
+              </Link>
+            )}
+            <p className="text-white/50 text-xs mb-5">Know someone who loves real Hyderabadi biryani? Bring them in.</p>
             <ShareFollow className="justify-center mb-6" />
             <button
               onClick={() => setShowModal(false)}

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { SITE_URL, INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL } from '@/lib/config';
 
-const MESSAGE = 'Only 42 plates of Hyderabadi dum biryani a day, then the kitchen stops. Join the Only42Biryani waitlist before they’re gone:';
+const MESSAGE = 'Only 42 plates of Hyderabadi dum biryani a day, then the kitchen stops. Order or pre-book yours from Only42Biryani:';
 
 const btn = 'rounded-full font-semibold text-sm tracking-wide px-5 py-3 border transition-all text-center';
 

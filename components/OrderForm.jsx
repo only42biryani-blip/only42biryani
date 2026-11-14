@@ -134,7 +134,11 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
   const set = (k) => (e) => {
     setV((x) => ({ ...x, [k]: e.target.value }));
   };
-  const qty = Math.min(Number(v.qty) || 1, maxQty);
+  // The plates one order can have: your per-order maximum, but never more than are left (today, or on the chosen day).
+  const dayLeft = prebook ? prebook.find((d) => d.value === date)?.left : remaining;
+  const limit = Math.max(1, Math.min(maxQty, dayLeft ?? maxQty));
+  const qty = Math.min(Math.max(1, Math.round(Number(v.qty)) || 1), limit);
+  const setQty = (n) => setV((x) => ({ ...x, qty: String(Math.min(limit, Math.max(1, n))) }));
   const net = Math.round(price * (1 - offerPercent / 100)); // price after the offer, as the server will charge it
   const total = fee === null ? null : qty * net + fee;
   const saved = qty * (price - net);
@@ -284,14 +288,28 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         </fieldset>
       )}
 
-      <label className="grid gap-1.5 text-xs text-white/60">
-        Plates
-        <select value={qty} onChange={set('qty')} className={input}>
-          {Array.from({ length: maxQty }, (_, i) => i + 1).map((n) => (
-            <option key={n} value={n}>{n}</option>
-          ))}
-        </select>
-      </label>
+      <div className="grid gap-1.5 text-xs text-white/60">
+        <label htmlFor="plates">How many plates?</label>
+        <div className="flex items-center gap-3">
+          <button type="button" aria-label="One plate less" onClick={() => setQty(qty - 1)} disabled={qty <= 1}
+            className="w-12 h-12 shrink-0 rounded-full border border-white/25 text-2xl leading-none text-white hover:border-saffron disabled:opacity-30 disabled:hover:border-white/25">−</button>
+          <input id="plates" inputMode="numeric" autoComplete="off" value={v.qty === '' ? '' : String(qty)}
+            onChange={(e) => setV((x) => ({ ...x, qty: e.target.value.replace(/\D/g, '').slice(0, 2) }))}
+            onBlur={() => setV((x) => ({ ...x, qty: String(qty) }))}
+            className={`${input} !w-20 text-center text-lg font-bold`} />
+          <button type="button" aria-label="One plate more" onClick={() => setQty(qty + 1)} disabled={qty >= limit}
+            className="w-12 h-12 shrink-0 rounded-full border border-white/25 text-2xl leading-none text-white hover:border-saffron disabled:opacity-30 disabled:hover:border-white/25">+</button>
+          <span className="text-sm text-[#F5F1E8]">{qty} × {rupees(net)} = <b>{rupees(qty * net)}</b></span>
+        </div>
+        <p className="text-[11px] text-white/45">
+          {dayLeft !== undefined && dayLeft !== null && dayLeft < maxQty
+            ? `Only ${dayLeft} plate${dayLeft === 1 ? '' : 's'} left ${prebook ? 'for that day' : 'today'}.`
+            : `Up to ${maxQty} plates per order.`}
+          {qty >= maxQty && (dayLeft === undefined || dayLeft === null || dayLeft >= maxQty) && (
+            <> Need more? <Link href="/contact" className="underline hover:text-saffron">Request a call back</Link>.</>
+          )}
+        </p>
+      </div>
 
       <StepHead n={2} title="Delivery details" />
       {savedAddr && (
@@ -377,6 +395,16 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
       )}
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-xs text-white/65 leading-relaxed">
+        <div className="text-[11px] tracking-[2px] uppercase text-saffron font-semibold mb-1.5">What happens next</div>
+        <ol className="grid gap-1 list-decimal pl-4">
+          <li>We confirm your order by call or WhatsApp.</li>
+          <li>{prebook ? `We cook it fresh and deliver it on ${dateLabel || 'your chosen day'}.` : 'We cook it fresh and deliver it to you.'}</li>
+          <li>{self ? 'You pay cash or UPI when it arrives.' : 'Your online payment is already done.'}</li>
+        </ol>
+        <p className="mt-1.5 text-white/50">You can cancel for free before we pack it.</p>
+      </div>
 
       <button type="submit" disabled={paying || fee === null || v.address.trim().length < 10 || needLocation || !city.ok}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">

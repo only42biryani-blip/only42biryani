@@ -13,7 +13,7 @@ export const viewport = {
 
 const TITLE = 'Only42Biryani | Best Hyderabad Chicken Dum Biryani';
 const DESCRIPTION =
-  'Hyderabadi chicken dum biryani cooked in one fresh batch of 42 plates a day, then the kitchen stops. Join the Only42Biryani waitlist for launch day in Hyderabad.';
+  'Hyderabadi chicken dum biryani cooked in one fresh batch of 42 plates a day, then the kitchen stops. Order or pre-book online for delivery in Hyderabad.';
 const OG_IMAGE = {
   url: '/images/chicken-dum-biryani-hero.jpg',
   width: 1600,

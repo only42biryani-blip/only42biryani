@@ -232,9 +232,7 @@ export default function OrdersBoard({ addToast }) {
           <textarea className={field} rows={3} placeholder="Address or Google Maps link (paste what they sent)" value={draft.address} onChange={(e) => setDraft({ ...draft, address: e.target.value })} required />
           <div className="grid grid-cols-3 gap-2">
             <label className="grid gap-1 text-[10px] text-neutral-500">Plates
-              <select className={field} value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })}>
-                {[1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n}</option>)}
-              </select>
+              <input className={field} type="number" min={1} max={42} inputMode="numeric" value={draft.qty} onChange={(e) => setDraft({ ...draft, qty: e.target.value })} required />
             </label>
             <label className="grid gap-1 text-[10px] text-neutral-500">Offer % (blank = usual)
               <input className={field} inputMode="numeric" value={draft.discountPercent} onChange={(e) => setDraft({ ...draft, discountPercent: e.target.value })} placeholder="auto" />

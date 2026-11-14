@@ -173,6 +173,22 @@ const at = (hhmm) => new Date(`2026-11-12T${hhmm}:00+05:30`);
   assert.equal(r.status, 200); assert.equal(d.code, 'DUPLICAT'); assert.equal(d.duplicate, true); assert.equal(placed.length, 0); // the first order is returned, nothing new is saved
   dup.rows = []; const r2 = await place(req(good)); assert.equal(r2.status, 200); assert.equal(placed.length, 1); assert.ok(!(await r2.json()).duplicate);
   ok('the same phone, address and plates twice within 3 minutes gives the first order back instead of a second one'); }
+{ // How many plates one order can have: the admin's limit wins; before the qty SQL is run the old small limit applies
+  const { plateConfig, hardMaxQty, validateOrder } = await lib('orders');
+  assert.equal(plateConfig().maxQty, 2); assert.equal(plateConfig({ plate_price: 400 }).maxQty, 2); // column missing = old limit (2 by default)
+  process.env.ORDER_MAX_QTY = '9'; assert.equal(plateConfig().maxQty, 5); delete process.env.ORDER_MAX_QTY; // the old database rule allowed 5 at most
+  assert.equal(plateConfig({ max_qty: 10 }).maxQty, 10); assert.equal(plateConfig({ max_qty: 1 }).maxQty, 1);
+  assert.equal(plateConfig({ max_qty: 99 }).maxQty, 42); assert.equal(plateConfig({ max_qty: 0 }).maxQty, 10); assert.equal(plateConfig({ max_qty: null }).maxQty, 10); // never more than a day's batch; a bad value falls back to 10
+  assert.equal(hardMaxQty({ max_qty: 10 }), 42); assert.equal(hardMaxQty({}), 5); assert.equal(hardMaxQty(null), 5);
+  const body = { name: 'Ali Khan', phone: '9876543210', address: 'Flat 4, Road 2, Khairatabad, Hyderabad', qty: 8 };
+  assert.equal(validateOrder(body, 10).ok, true); assert.equal(validateOrder(body, 5).ok, false); assert.match(validateOrder(body, 5).error, /1 to 5 plates/);
+  ok('plates per order: the admin limit (up to 42) wins, a missing column keeps the old limit, bad values are ignored, orders above the limit are refused'); }
+{ store.row = { online_until: new Date(Date.now() + 3600e3).toISOString(), max_qty: 10 }; placed.length = 0;
+  assert.equal((await place(req({ ...good, qty: 8, phone: '9111111111' }))).status, 200); assert.equal(placed[0].p_qty, 8);
+  const over = await place(req({ ...good, qty: 11, phone: '9222222222' })); assert.equal(over.status, 400); assert.match((await over.json()).error, /1 to 10 plates/); assert.equal(placed.length, 1);
+  store.row = { online_until: new Date(Date.now() + 3600e3).toISOString() };
+  assert.equal((await place(req({ ...good, qty: 3, phone: '9333333333' }))).status, 400); // before the SQL is run, 3 is still too many
+  ok('a customer order of 8 plates works when the limit is 10; 11 is refused; without the SQL the old limit still protects the database'); }
 { store.error = true; assert.equal(await kitchenOnline(), true); store.error = false; store.throwIt = true; assert.equal(await kitchenOnline(), true); store.throwIt = false; store.row = null; assert.equal(await kitchenOnline(), true);
   ok('before the SQL is run (missing columns) or on a network error, ordering is not blocked'); }
 
