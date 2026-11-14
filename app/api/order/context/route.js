@@ -43,7 +43,7 @@ export async function GET(request) {
     prebook: prebookMode ? await prebookDatesWithLeft(now, pb.openTime, booked) : null,
     reason: !online ? 'offline' : soldOutToday ? 'soldout' : !open ? 'closed' : '',
     remaining, price: cfg.price, maxQty: cfg.maxQty, offerPercent: cfg.offerPercent, selfFee: cfg.selfFee,
-    rules: { configured: hasKitchenPin(rules), maxKm: rules.maxKm, requirePin: rules.requirePin && rules.limitRange, limitRange: rules.limitRange, defaultFee, maxFee: rules.maxFee },
+    rules: { configured: hasKitchenPin(rules), maxKm: rules.maxKm, requirePin: rules.requirePin && rules.limitRange, limitRange: rules.limitRange, defaultFee, maxFee: rules.maxFee, cityOnly: rules.cityOnly, cityRadiusKm: rules.cityRadiusKm },
   };
   return Response.json(body, {
     headers: { 'Cache-Control': token ? 'no-store' : 'public, s-maxage=5, stale-while-revalidate=30' },

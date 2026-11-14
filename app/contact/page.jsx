@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { CONTACT_EMAIL, LEGAL_NAME, PHONE, AREA, FSSAI_LICENSE, WHATSAPP_NUMBER, INSTAGRAM_PROFILE_URL } from '@/lib/config';
+import { CONTACT_EMAIL, LEGAL_NAME, AREA, FSSAI_LICENSE, INSTAGRAM_PROFILE_URL } from '@/lib/config';
+import ContactRequestForm from '@/components/ContactRequestForm';
 
 export const metadata = {
   title: 'Contact us',
@@ -13,9 +14,7 @@ export default function ContactPage() {
     ['Brand', 'Only42Biryani'],
     LEGAL_NAME && ['Operated by', LEGAL_NAME],
     ['Email', <a key="e" href={`mailto:${CONTACT_EMAIL}`} className="text-accent hover:underline">{CONTACT_EMAIL}</a>],
-    PHONE && ['Phone', <a key="p" href={`tel:${PHONE}`} className="text-accent hover:underline">{PHONE}</a>],
-    WHATSAPP_NUMBER && ['WhatsApp', <a key="w" href={`https://wa.me/${WHATSAPP_NUMBER}`} className="text-accent hover:underline">Message us</a>],
-    ['Address', AREA || 'Hyderabad, Telangana, India'],
+    ['Area', AREA || 'Hyderabad, Telangana, India'],
     FSSAI_LICENSE && ['FSSAI licence no.', FSSAI_LICENSE],
     INSTAGRAM_PROFILE_URL && ['Instagram', <a key="i" href={INSTAGRAM_PROFILE_URL} target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">@only42biryani</a>],
   ].filter(Boolean);
@@ -28,7 +27,7 @@ export default function ContactPage() {
         </Link>
         <h1 className="font-grotesk text-4xl md:text-5xl font-bold uppercase tracking-tight mt-8 mb-10">Contact us</h1>
         <p className="text-white/70 leading-relaxed mb-8">
-          Questions about an order, a delivery or a refund? Write to us with your order code and we will get back to you.
+          Questions about an order, a delivery or a refund? Email us with your order code and we will get back to you. If it is urgent, use the form below and we will call or WhatsApp you.
         </p>
         <dl className="grid grid-cols-[150px_1fr] gap-x-4 gap-y-3 text-sm">
           {rows.map(([k, v]) => (
@@ -38,6 +37,9 @@ export default function ContactPage() {
             </div>
           ))}
         </dl>
+        <div className="mt-10">
+          <ContactRequestForm />
+        </div>
       </div>
     </main>
   );

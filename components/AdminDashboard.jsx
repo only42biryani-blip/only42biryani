@@ -13,8 +13,9 @@ import DeliverySettings from './DeliverySettings';
 import PaymentSettings from './PaymentSettings';
 import PriceSettings from './PriceSettings';
 import AlertSettings from './AlertSettings';
+import ContactRequests from './ContactRequests';
 
-const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['delivery', 'Delivery & pay'], ['launch', 'Launch']];
+const TABS = [['today', 'Today'], ['orders', 'Orders'], ['waitlist', 'Waitlist'], ['reviews', 'Reviews'], ['requests', 'Requests'], ['delivery', 'Delivery & pay'], ['launch', 'Launch']];
 
 const SENT_KEY = 'only42-messaged';
 
@@ -100,6 +101,7 @@ export default function AdminDashboard() {
   const [reviewsWaiting, setReviewsWaiting] = useState(null);
   const [prebookToday, setPrebookToday] = useState(0); // plates already pre-booked for today
   const [waitlistCount, setWaitlistCount] = useState(null);
+  const [requestsOpen, setRequestsOpen] = useState(0); // contact requests waiting for you
   const [waitlist, setWaitlist] = useState([]);
   const [waitlistState, setWaitlistState] = useState('idle');
   const [dbTotal, setDbTotal] = useState(null); // what the database says the total is, to spot missing rows
@@ -461,7 +463,7 @@ export default function AdminDashboard() {
 
         <nav className="flex gap-2 overflow-x-auto mb-6 pb-1 sticky top-0 z-20 bg-[#121212] py-2 -mx-1 px-1" aria-label="Dashboard sections">
           {TABS.map(([key, label]) => {
-            const badge = key === 'reviews' ? reviewsWaiting : key === 'waitlist' ? waitlistCount : 0;
+            const badge = key === 'reviews' ? reviewsWaiting : key === 'waitlist' ? waitlistCount : key === 'requests' ? requestsOpen : 0;
             return (
               <button key={key} onClick={() => openTab(key)} aria-current={tab === key ? 'page' : undefined}
                 className={`shrink-0 px-4 py-2.5 rounded-xl text-sm font-bold border transition-colors ${tab === key ? 'bg-accent text-black border-accent' : 'border-white/10 text-neutral-300 hover:bg-white/[0.08]'}`}>
@@ -521,6 +523,8 @@ export default function AdminDashboard() {
           </button>
         </div>
         </div>
+
+        <div className={tab === 'requests' ? 'mb-6' : 'hidden'}><ContactRequests addToast={addToast} onOpenCount={setRequestsOpen} /></div>
 
         <div className={tab === 'delivery' ? 'mb-6' : 'hidden'}><div className="grid gap-5"><AlertSettings addToast={addToast} /><PriceSettings addToast={addToast} /><PaymentSettings addToast={addToast} /><DeliverySettings addToast={addToast} /></div></div>
 

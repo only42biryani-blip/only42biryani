@@ -75,7 +75,7 @@ export function DeliveryCard({ area }) {
   return (
     <div className="hud-box p-6 grid gap-3 text-sm">
       <h3 className="font-grotesk text-lg font-bold text-[#F5F1E8]">Delivery and payment</h3>
-      <p className="text-white/70"><b className="text-white">Where:</b> Hyderabad. Our kitchen is {area}.</p>
+      <p className="text-white/70"><b className="text-white">Where:</b> Hyderabad only. We cannot deliver outside the city. Our kitchen is in {area}.</p>
       <p className="text-white/70"><b className="text-white">Delivery:</b> {delivery}</p>
       <p className="text-white/70"><b className="text-white">When:</b> {ctx?.hours ? `Ordering hours ${ctx.hours} (IST), while plates last.` : 'While the kitchen is online and plates last. When it is offline you can pre-book for another day.'}</p>
       <p className="text-white/70"><b className="text-white">Pay:</b> {payText}.</p>

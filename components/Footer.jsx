@@ -5,8 +5,6 @@ import {
   SWIGGY_URL,
   INSTAGRAM_PROFILE_URL,
   INSTAGRAM_REEL_URL,
-  WHATSAPP_NUMBER,
-  PHONE,
   AREA,
   FSSAI_LICENSE,
   CONTACT_EMAIL,
@@ -15,7 +13,6 @@ import {
 
 const links = [
   { label: 'Instagram', url: INSTAGRAM_PROFILE_URL || INSTAGRAM_REEL_URL },
-  { label: 'WhatsApp', url: WHATSAPP_NUMBER && `https://wa.me/${WHATSAPP_NUMBER}` },
   { label: 'Zomato', url: ZOMATO_URL },
   { label: 'Swiggy', url: SWIGGY_URL },
 ].filter((l) => l.url);
@@ -42,11 +39,9 @@ export default function Footer() {
           <p>
             <a href={`mailto:${CONTACT_EMAIL}`} className="hover:text-saffron">{CONTACT_EMAIL}</a>
           </p>
-          {PHONE && (
-            <p>
-              <a href={`tel:${PHONE}`} className="hover:text-saffron">{PHONE}</a>
-            </p>
-          )}
+          <p>
+            <Link href="/contact" className="hover:text-saffron">Need us urgently? Request a call back</Link>
+          </p>
           {FSSAI_LICENSE && <p>FSSAI Lic. No. {FSSAI_LICENSE}</p>}
         </div>
 

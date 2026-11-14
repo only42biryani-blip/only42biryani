@@ -14,6 +14,7 @@ export default function DeliverySettings({ addToast }) {
   const [form, setForm] = useState(null); // strings for the inputs
   const [kitchen, setKitchen] = useState({ lat: null, lng: null });
   const [saved, setSaved] = useState(null);
+  const [cityReady, setCityReady] = useState(false); // the Hyderabad-only SQL has been run
   const [missing, setMissing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [locating, setLocating] = useState(false);
@@ -24,8 +25,9 @@ export default function DeliverySettings({ addToast }) {
     const r = rulesFromRow(data);
     setMissing(false);
     setSaved(r);
+    setCityReady(data.city_only !== undefined);
     setKitchen({ lat: r.kitchenLat, lng: r.kitchenLng });
-    setForm({ maxKm: String(r.maxKm), freeKm: String(r.freeKm), baseFee: String(r.baseFee), perKmFee: String(r.perKmFee), requirePin: r.requirePin, maxFee: r.maxFee === null ? '' : String(r.maxFee), limitRange: r.limitRange });
+    setForm({ maxKm: String(r.maxKm), freeKm: String(r.freeKm), baseFee: String(r.baseFee), perKmFee: String(r.perKmFee), requirePin: r.requirePin, maxFee: r.maxFee === null ? '' : String(r.maxFee), limitRange: r.limitRange, cityOnly: r.cityOnly, cityRadius: String(r.cityRadiusKm) });
   }, []);
 
   useEffect(() => {
@@ -55,19 +57,23 @@ export default function DeliverySettings({ addToast }) {
     maxKm: Number(form.maxKm), freeKm: Number(form.freeKm), baseFee: Number(form.baseFee), perKmFee: Number(form.perKmFee),
   };
   const maxFeeNum = form && (String(form.maxFee).trim() === '' ? null : Number(form.maxFee)); // blank = no cap
-  const valid = nums && Object.values(nums).every((n) => Number.isFinite(n) && n >= 0) && nums.maxKm >= 0.5 && nums.maxKm <= 100 && (maxFeeNum === null || (Number.isFinite(maxFeeNum) && maxFeeNum >= 0));
+  const cityRadiusNum = form && Number(form.cityRadius);
+  const cityValid = !form || !cityReady || (Number.isFinite(cityRadiusNum) && cityRadiusNum >= 10 && cityRadiusNum <= 100);
+  const valid = cityValid && nums && Object.values(nums).every((n) => Number.isFinite(n) && n >= 0) && nums.maxKm >= 0.5 && nums.maxKm <= 100 && (maxFeeNum === null || (Number.isFinite(maxFeeNum) && maxFeeNum >= 0));
   const dirty = form && saved && (
     nums.maxKm !== saved.maxKm || nums.freeKm !== saved.freeKm || nums.baseFee !== saved.baseFee || nums.perKmFee !== saved.perKmFee ||
     form.requirePin !== saved.requirePin || kitchen.lat !== saved.kitchenLat || kitchen.lng !== saved.kitchenLng ||
-    maxFeeNum !== saved.maxFee || form.limitRange !== saved.limitRange
+    maxFeeNum !== saved.maxFee || form.limitRange !== saved.limitRange ||
+    (cityReady && (form.cityOnly !== saved.cityOnly || cityRadiusNum !== saved.cityRadiusKm))
   );
 
   async function save() {
-    if (!valid) return addToast?.('Check the numbers: distances 0.5 to 100 km, charges 0 or more.', 'error');
+    if (!valid) return addToast?.('Check the numbers: distances 0.5 to 100 km (city radius 10 to 100 km), charges 0 or more.', 'error');
     setBusy(true);
     const { data, error } = await supabase.from('settings').update({
       kitchen_lat: kitchen.lat, kitchen_lng: kitchen.lng, max_km: nums.maxKm, free_km: nums.freeKm,
       base_fee: nums.baseFee, per_km_fee: nums.perKmFee, require_pin: form.requirePin, max_fee: maxFeeNum, range_limit: form.limitRange,
+      ...(cityReady ? { city_only: form.cityOnly, city_radius_km: cityRadiusNum } : {}),
     }).eq('id', 1).select(COLS);
     setBusy(false);
     if (error || !data || data.length === 0) return addToast?.('Could not save. Run supabase-delivery-setup.sql in Supabase first.', 'error');
@@ -108,6 +114,33 @@ export default function DeliverySettings({ addToast }) {
             </span>
           ) : <span className="text-xs text-amber-300">Not set yet, so distance is not measured</span>}
         </div>
+      </div>
+
+      <div className="border border-white/10 rounded-2xl p-5">
+        <h3 className="font-grotesk text-lg font-bold mb-1">Delivery area: Hyderabad only</h3>
+        {cityReady ? (
+          <>
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" checked={form.cityOnly} onChange={(e) => setForm((f) => ({ ...f, cityOnly: e.target.checked }))} className="mt-1 h-5 w-5 accent-[#D4FF3F]" />
+              <span className="text-sm">
+                <b>Accept orders only from inside Hyderabad</b>
+                <span className="block text-xs text-neutral-400 leading-relaxed">
+                  On (recommended): a customer whose shared location is outside the area below, or whose address has a pincode outside Hyderabad (500, 501, 502) or names another city, sees &quot;we deliver only inside Hyderabad&quot; and cannot order or pre-book.
+                </span>
+              </span>
+            </label>
+            {form.cityOnly && (
+              <label className="grid gap-1 text-xs text-neutral-400 w-fit mt-3">Area around the city centre (km)
+                <input className={field} inputMode="decimal" value={form.cityRadius} onChange={edit('cityRadius')} />
+                <span className="text-[11px] text-neutral-500">35 km covers the whole city, Secunderabad, the airport, Medchal and Patancheru.</span>
+              </label>
+            )}
+          </>
+        ) : (
+          <p className="text-xs text-neutral-300 leading-relaxed">
+            Orders are already limited to Hyderabad. To change the area or switch the check off, run <code className="text-accent">supabase-city-setup.sql</code> in Supabase, then reload.
+          </p>
+        )}
       </div>
 
       <div className="border border-white/10 rounded-2xl p-5">

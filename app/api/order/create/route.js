@@ -41,7 +41,7 @@ export async function POST(request) {
 
   // Delivery range from your Delivery settings: far-away customers are told BEFORE they pay.
   const rules = await deliveryRules(row);
-  const range = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
+  const range = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null, o.address); // also refuses addresses outside Hyderabad
   if (!range.ok) return bad(range.message, 422);
 
   // Delivery charge: from your Delivery settings (distance) when the kitchen location is set, else the default charge.

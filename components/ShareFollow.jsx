@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { SITE_URL, INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL, WHATSAPP_NUMBER } from '@/lib/config';
+import { SITE_URL, INSTAGRAM_PROFILE_URL, INSTAGRAM_REEL_URL } from '@/lib/config';
 
 const MESSAGE = 'Only 42 plates of Hyderabadi dum biryani a day, then the kitchen stops. Join the Only42Biryani waitlist before they’re gone:';
 
@@ -44,12 +44,6 @@ export default function ShareFollow({ className = '' }) {
         className={`${btn} border-white/25 text-white hover:border-saffron hover:text-saffron`}>
         {INSTAGRAM_PROFILE_URL ? 'Follow on Instagram' : 'Watch the reel'}
       </a>
-      {WHATSAPP_NUMBER && (
-        <a href={`https://wa.me/${WHATSAPP_NUMBER}`} target="_blank" rel="noopener noreferrer"
-          className={`${btn} border-white/25 text-white hover:border-accent hover:text-accent`}>
-          WhatsApp us
-        </a>
-      )}
       <button type="button" onClick={copyLink}
         className={`${btn} border-white/15 text-white/60 hover:text-white`}>
         {copied ? 'Link copied' : 'Copy link'}

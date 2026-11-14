@@ -21,7 +21,7 @@ export async function POST(request) {
   // What an order pays when no location is shared: exactly what the order route will charge.
   const noPin = checkDelivery(rules, null);
   const defaultFee = noPin.fee !== null ? noPin.fee : noPin.ok ? capFee(plateConfig().selfFee, rules) : (rules.maxFee ?? rules.baseFee);
-  const base = { configured, maxKm: rules.maxKm, requirePin: rules.requirePin && rules.limitRange, limitRange: rules.limitRange, defaultFee, maxFee: rules.maxFee };
+  const base = { configured, maxKm: rules.maxKm, requirePin: rules.requirePin && rules.limitRange, limitRange: rules.limitRange, defaultFee, maxFee: rules.maxFee, cityOnly: rules.cityOnly, cityRadiusKm: rules.cityRadiusKm };
   if (!hasPin) return Response.json({ ...base }, { headers: { 'Cache-Control': 'no-store' } });
   const d = checkDelivery(rules, { lat, lng });
   return Response.json({ ...base, ok: d.ok, outside: Boolean(d.outside), km: d.km, fee: d.fee, reason: d.reason, message: d.message }, { headers: { 'Cache-Control': 'no-store' } });

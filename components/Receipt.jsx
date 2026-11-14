@@ -1,6 +1,6 @@
 'use client';
 
-import { PHONE, AREA, FSSAI_LICENSE, GSTIN, LEGAL_NAME, SITE_URL, INSTAGRAM_PROFILE_URL } from '@/lib/config';
+import { AREA, FSSAI_LICENSE, GSTIN, LEGAL_NAME, SITE_URL, INSTAGRAM_PROFILE_URL } from '@/lib/config';
 import { rs } from '@/lib/bill';
 
 // The printed bill. `m` is the model from billModel() in lib/bill.js (so the preview, the print and the text
@@ -18,7 +18,6 @@ export function textBill(m, cols = 42) {
   const out = [center('ONLY42BIRYANI'), center('Single-batch chicken dum biryani')];
   if (LEGAL_NAME) out.push(center(LEGAL_NAME));
   if (AREA) out.push(center(AREA));
-  if (PHONE) out.push(center(`Ph: ${PHONE}`));
   if (FSSAI_LICENSE) out.push(center(`FSSAI: ${FSSAI_LICENSE}`));
   if (GSTIN) out.push(center(`GSTIN: ${GSTIN}`));
   out.push(line, lr('Bill no:', m.code), lr('Date:', when(m.createdAt)), line);
@@ -48,7 +47,6 @@ export default function Receipt({ m, width = 80 }) {
         <div>Single-batch chicken dum biryani</div>
         {LEGAL_NAME && <div style={{ fontSize: 11 }}>{LEGAL_NAME}</div>}
         {AREA && <div>{AREA}</div>}
-        {PHONE && <div>Ph: {PHONE}</div>}
         {FSSAI_LICENSE && <div>FSSAI Lic. No. {FSSAI_LICENSE}</div>}
         {GSTIN && <div>GSTIN: {GSTIN}</div>}
       </div>

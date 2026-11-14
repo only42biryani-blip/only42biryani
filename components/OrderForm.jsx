@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { mapsLink } from '@/lib/maps';
+import { cityCheck } from '@/lib/delivery';
 
 const SAVED_KEY = 'only42-saved-address';
 
@@ -88,7 +89,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         });
         const d = await res.json().catch(() => null);
         if (cancelled || !res.ok || !d) return;
-        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin, limitRange: d.limitRange, defaultFee: d.defaultFee, maxFee: d.maxFee });
+        setRules({ configured: d.configured, maxKm: d.maxKm, requirePin: d.requirePin, limitRange: d.limitRange, defaultFee: d.defaultFee, maxFee: d.maxFee, cityOnly: d.cityOnly, cityRadiusKm: d.cityRadiusKm });
         if (pin) {
           setRange(d);
           if (d.ok && d.fee !== null && d.fee !== undefined) setFee(d.fee);
@@ -139,6 +140,9 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
   const saved = qty * (price - net);
   const soldOut = !prebook && remaining !== null && remaining <= 0;
   const needLocation = Boolean(rules?.configured && rules.requirePin && !pin);
+  // We deliver only inside Hyderabad: checked here as you type (the server checks again when you order).
+  const city = cityCheck({ cityOnly: rules?.cityOnly !== false, cityRadiusKm: rules?.cityRadiusKm }, { pin, address: v.address });
+  const cityOnly = rules?.cityOnly !== false;
 
   function shareLocation() {
     setError('');
@@ -328,6 +332,8 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
         </p>
       )}
 
+      {cityOnly && <p className="text-[11px] text-white/50 -mt-2">We deliver only inside Hyderabad. Your address must be in Hyderabad.</p>}
+      {!city.ok && <p role="alert" className="text-sm text-red-400 -mt-1">{city.message}</p>}
       <textarea className={input} name="street-address" rows={3} value={v.address} onChange={set('address')} autoComplete="street-address" required
         placeholder={pin ? 'Flat / house number, building, street, area' : 'Full address: flat or house, street, area, Hyderabad (tap here: your phone may suggest a saved address)'} />
       <input className={input} name="landmark" placeholder="Landmark or gate code (optional)" value={v.note} onChange={set('note')} maxLength={200} autoComplete="off" />
@@ -372,7 +378,7 @@ export default function OrderForm({ price, maxQty, remaining, hoursText, cod = t
 
       {error && <p role="alert" className="text-red-400 text-sm">{error}</p>}
 
-      <button type="submit" disabled={paying || fee === null || v.address.trim().length < 10 || needLocation}
+      <button type="submit" disabled={paying || fee === null || v.address.trim().length < 10 || needLocation || !city.ok}
         className="w-full py-4 rounded-full font-bold text-sm text-black tracking-wide bg-accent hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed">
         {total === null ? 'Working out delivery...' : paying ? (self ? 'Placing order...' : 'Opening payment...') : prebook ? `Pre-book for ${dateLabel} · ${rupees(total)}` : self ? `Place order · ${rupees(total)}` : `Pay ${rupees(total)}`}
       </button>

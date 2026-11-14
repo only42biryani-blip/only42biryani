@@ -47,7 +47,7 @@ export async function POST(request) {
   const o = v.value;
   // Delivery range and charge come from your Delivery settings in /admin, worked out here from the shared location.
   const rules = await deliveryRules(row);
-  const d = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null);
+  const d = checkDelivery(rules, o.lat !== null ? { lat: o.lat, lng: o.lng } : null, o.address); // also refuses addresses outside Hyderabad
   if (!d.ok) return bad(d.message, 422);
   const p = priceOrder(o.qty, cfg, d.fee === null ? capFee(cfg.selfFee, rules) : d.fee);
   const code = newCode();

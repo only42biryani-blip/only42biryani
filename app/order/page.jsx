@@ -63,7 +63,7 @@ export default function OrderPage() {
                 </div>
               </div>
 
-              <DeliveryCard area={AREA.replace(/^Near /, 'near ')} />
+              <DeliveryCard area={AREA} />
 
               <div className="hud-box p-6">
                 <h3 className="font-grotesk text-lg font-bold text-[#F5F1E8] mb-4">How it works</h3>

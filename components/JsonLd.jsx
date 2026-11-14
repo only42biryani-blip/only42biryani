@@ -1,4 +1,4 @@
-import { SITE_URL, ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL, PHONE, AREA, PLATE, LEGAL_NAME } from '@/lib/config';
+import { SITE_URL, ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL, AREA, PLATE, LEGAL_NAME } from '@/lib/config';
 import { getFaqItems } from '@/lib/faq';
 
 const DESCRIPTION =
@@ -81,12 +81,10 @@ export default function JsonLd({ launched }) {
       areaServed: { '@type': 'City', name: 'Hyderabad' },
       address: {
         '@type': 'PostalAddress',
-        ...(AREA ? { streetAddress: AREA } : {}),
-        addressLocality: 'Hyderabad',
+        addressLocality: AREA ? AREA.split(',')[0].trim() : 'Hyderabad', // the area only (no street address)
         addressRegion: 'Telangana',
         addressCountry: 'IN',
       },
-      ...(PHONE ? { telephone: PHONE } : {}),
       sameAs: [ZOMATO_URL, SWIGGY_URL, INSTAGRAM_PROFILE_URL].filter(Boolean),
       hasMenu: {
         '@type': 'Menu',

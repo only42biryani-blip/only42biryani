@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 
 const STEPS = [
   ['paid', 'Order received'],
@@ -93,6 +94,10 @@ export default function OrderTracker({ code }) {
         </p>
       )}
       <p className="text-[11px] text-white/40 mt-6">Keep this page or your order code ({o.code}). It updates by itself.</p>
+      <p className="text-xs text-white/50 mt-2">
+        Need to reach us about this order?{' '}
+        <Link href={`/contact?order=${o.code}`} className="underline hover:text-saffron">Request a call back</Link>
+      </p>
     </div>
   );
 }

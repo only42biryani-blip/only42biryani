@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 const sections = [
-  { title: "Where we deliver", body: "We deliver within a limited area of Hyderabad. If your address is outside it, the order page tells you before you pay." },
+  { title: "Where we deliver", body: "We deliver only inside Hyderabad. If your address or shared location is outside the city, the order page tells you before you order and the order is not accepted." },
   { title: "Delivery charge", body: "The delivery charge depends on the distance and is shown before you pay. It is added to the price of the biryani." },
   { title: "How it is delivered", body: "Your biryani is packed fresh and handed to a delivery rider from a delivery partner. You get a tracking link on your order page once the rider is assigned." },
   { title: "Delivery time", body: "We aim to deliver as quickly as possible. The time depends on how far you are, traffic and weather, so it is an estimate and not a guarantee." },
